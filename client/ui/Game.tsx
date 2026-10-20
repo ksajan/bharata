@@ -26,6 +26,7 @@ export function Game(props: {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [selectedArmy, setSelectedArmy] = useState<ArmyId | null>(null)
   const [showHelp, setShowHelp] = useState(false)
+  const [focusBoard, setFocusBoard] = useState(false)
   const [sell, setSell] = useState({ iron: 0, wood: 0, food: 0, trade: 0 })
   const [conquerRegion, setConquerRegion] = useState<string | null>(null)
   const [revealDismissed, setRevealDismissed] = useState<string | null>(null)
@@ -47,6 +48,15 @@ export function Game(props: {
       return () => clearTimeout(t)
     }
   }, [error])
+
+  useEffect(() => {
+    if (!focusBoard) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFocusBoard(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [focusBoard])
 
   // during the draft the device is already with the drafting ruler — acknowledge them silently
   useEffect(() => {
@@ -163,7 +173,7 @@ export function Game(props: {
   const needsHandoff = hotseat && !!mySeatId && ackedSeat !== mySeatId
 
   return (
-    <div className="game">
+    <div className={`game ${focusBoard ? 'focus-board' : ''}`}>
       {/* ---------- top bar ---------- */}
       <div className="topbar">
         <div className="logo">भारत · BHARATA</div>
@@ -232,6 +242,8 @@ export function Game(props: {
               moveTargets={moveTargets}
               evtTargets={evtTargets}
               onRegion={onRegion}
+              focusMode={focusBoard}
+              onToggleFocus={() => setFocusBoard((f) => !f)}
             />
           </div>
         </div>

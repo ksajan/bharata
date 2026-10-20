@@ -1,7 +1,11 @@
-import React, { useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HEX_SIZE, REGIONS, RIVER_PATHS, hexCenter, hexPolygon } from '../../shared/data'
 import type { GameState } from '../../shared/types'
 import { EVENT_GLYPHS, ICON_SHAPES, type IconKind } from './icons'
+
+type Box = { x: number; y: number; w: number; h: number }
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
 export function Board(props: {
   state: GameState
@@ -9,10 +13,12 @@ export function Board(props: {
   moveTargets: Set<string>
   evtTargets: Set<string>
   onRegion: (rid: string) => void
+  focusMode?: boolean
+  onToggleFocus?: () => void
 }) {
-  const { state, selectedRegion, moveTargets, evtTargets, onRegion } = props
+  const { state, selectedRegion, moveTargets, evtTargets, onRegion, focusMode, onToggleFocus } = props
 
-  const { minX, minY, maxX, maxY } = useMemo(() => {
+  const fit = useMemo<Box>(() => {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
     for (const r of Object.values(REGIONS)) {
       for (const [x, y] of hexPolygon(r.pos.q, r.pos.r)) {
@@ -20,20 +26,164 @@ export function Board(props: {
         maxX = Math.max(maxX, x); maxY = Math.max(maxY, y)
       }
     }
-    const pad = 96
-    return { minX: minX - pad, minY: minY - pad, maxX: maxX + pad, maxY: maxY + pad }
+    const pad = 64
+    return { x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 }
   }, [])
 
+  const [box, setBox] = useState<Box>(fit)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const pointers = useRef(new Map<number, { x: number; y: number }>())
+  const drag = useRef<{ startX: number; startY: number; box: Box; moved: boolean; pinchDist: number } | null>(null)
+  const suppressClick = useRef(false)
+  const boxRef = useRef(box)
+  boxRef.current = box
+
+  // reset the view when the board remounts (e.g. focus mode toggles)
+  useEffect(() => {
+    setBox(fit)
+  }, [fit])
+
+  const clampBox = useCallback(
+    (b: Box): Box => {
+      const w = clamp(b.w, fit.w / 4, fit.w)
+      const h = w * (fit.h / fit.w)
+      const x = clamp(b.x, fit.x, fit.x + fit.w - w)
+      const y = clamp(b.y, fit.y, fit.y + fit.h - h)
+      return { x, y, w, h }
+    },
+    [fit],
+  )
+
+  const zoomTo = useCallback(
+    (factor: number, fx = 0.5, fy = 0.5) => {
+      setBox((cur) => {
+        const w = clamp(cur.w / factor, fit.w / 4, fit.w)
+        const h = w * (fit.h / fit.w)
+        const x = cur.x + (cur.w - w) * fx
+        const y = cur.y + (cur.h - h) * fy
+        return clampBox({ x, y, w, h })
+      })
+    },
+    [fit, clampBox],
+  )
+
+  const fitView = useCallback(() => setBox(fit), [fit])
+
+  const zoomPct = Math.round((fit.w / box.w) * 100)
+
+  // wheel zoom, kept non-passive so the page doesn't scroll while zooming the map
+  useEffect(() => {
+    const el = svgRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = el.getBoundingClientRect()
+      const fx = (e.clientX - rect.left) / rect.width
+      const fy = (e.clientY - rect.top) / rect.height
+      zoomTo(e.deltaY < 0 ? 1.18 : 1 / 1.18, fx, fy)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [zoomTo])
+
+  const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (pointers.current.size === 1 && box.w < fit.w - 0.5) {
+      drag.current = { startX: e.clientX, startY: e.clientY, box, moved: false, pinchDist: 0 }
+      ;(e.target as Element).setPointerCapture?.(e.pointerId)
+    } else if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()]
+      const d = Math.hypot(a.x - b.x, a.y - b.y)
+      if (drag.current) drag.current.pinchDist = d
+    }
+  }
+
+  const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!pointers.current.has(e.pointerId)) return
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    const rect = svgRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    // pinch zoom
+    if (pointers.current.size === 2 && drag.current?.pinchDist) {
+      const [a, b] = [...pointers.current.values()]
+      const d = Math.hypot(a.x - b.x, a.y - b.y)
+      const factor = d / drag.current.pinchDist
+      if (Number.isFinite(factor) && factor > 0.1 && factor < 10) {
+        drag.current.pinchDist = d
+        zoomTo(factor)
+        suppressClick.current = true
+      }
+      return
+    }
+
+    if (!drag.current) return
+    const dxPx = e.clientX - drag.current.startX
+    const dyPx = e.clientY - drag.current.startY
+    if (Math.abs(dxPx) + Math.abs(dyPx) > 4) drag.current.moved = true
+    const scale = drag.current.box.w / rect.width
+    const nb = clampBox({
+      x: drag.current.box.x - dxPx * scale,
+      y: drag.current.box.y - dyPx * scale,
+      w: drag.current.box.w,
+      h: drag.current.box.h,
+    })
+    setBox(nb)
+  }
+
+  const endPointer = (e: React.PointerEvent<SVGSVGElement>) => {
+    pointers.current.delete(e.pointerId)
+    if (drag.current?.moved) suppressClick.current = true
+    if (pointers.current.size < 2) drag.current = null
+  }
+
+  const handleRegion = (rid: string) => {
+    if (suppressClick.current) {
+      suppressClick.current = false
+      return
+    }
+    onRegion(rid)
+  }
+
   const seatColor = (seatId: string) => state.seats[seatId]?.color ?? '#888'
+  const zoomed = zoomPct > 110
+  // keep the decorative frame aligned with the map bounds
+  const minX = fit.x
+  const minY = fit.y
+  const maxX = fit.x + fit.w
+  const maxY = fit.y + fit.h
 
   return (
-    <svg
-      className="board-frame"
-      viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`}
-      style={{ width: '100%', minWidth: 880, maxWidth: 1500, height: '100%', maxHeight: '82vh', margin: '0 auto', display: 'block', background: 'linear-gradient(170deg,#e8d5ab,#dcc392 60%,#d2b47f)' }}
-      role="img"
-      aria-label="Map of Bharata"
-    >
+    <div className={`board-stage ${zoomed ? 'is-zoomed' : ''} ${focusMode ? 'is-focus' : ''}`}>
+      <div className="board-controls" role="group" aria-label="Map controls">
+        <button className="small" onClick={() => zoomTo(1 / 1.35)} disabled={zoomPct <= 100} aria-label="Zoom out">
+          −
+        </button>
+        <span className="zoom-level" aria-live="polite">{zoomPct}%</span>
+        <button className="small" onClick={() => zoomTo(1.35)} disabled={zoomPct >= 400} aria-label="Zoom in">
+          +
+        </button>
+        <button className="small" onClick={fitView} disabled={zoomPct <= 100} aria-label="Fit the whole map">
+          Fit
+        </button>
+        {onToggleFocus && (
+          <button className="small" onClick={onToggleFocus} aria-label={focusMode ? 'Exit full board' : 'Show the full board'}>
+            {focusMode ? '← Board' : '⛶ Focus'}
+          </button>
+        )}
+      </div>
+      <svg
+        ref={svgRef}
+        className="board-frame"
+        viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`}
+        preserveAspectRatio="xMidYMid meet"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endPointer}
+        onPointerCancel={endPointer}
+        role="img"
+        aria-label="Map of Bharata"
+      >
       <defs>
         <radialGradient id="sea" cx="50%" cy="40%" r="75%">
           <stop offset="0%" stopColor="#d9c59a" />
@@ -152,7 +302,7 @@ export function Board(props: {
           <g
             key={region.id}
             className={`region ${region.kind === 'mahajanapada' ? 'maha' : ''} ${isSel ? 'selected' : ''} ${canMove ? 'moveable' : ''}`}
-            onClick={() => onRegion(region.id)}
+            onClick={() => handleRegion(region.id)}
           >
             <polygon
               className="region-shape"
@@ -300,7 +450,8 @@ export function Board(props: {
         opacity="0.14"
         pointerEvents="none"
       />
-    </svg>
+      </svg>
+    </div>
   )
 }
 
