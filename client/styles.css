@@ -280,6 +280,21 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
 .actions-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .hint { font-size: 13.5px; color: #b3a480; font-style: italic; }
 
+/* next-step coach + turn handoff toast */
+.next-step {
+  display: flex; align-items: center; gap: 10px; margin: 8px 12px 0; padding: 6px 12px;
+  border: 1px solid #4d3a22; border-left: 3px solid var(--gold); border-radius: 8px;
+  background: rgba(230, 189, 99, 0.07); font-size: 14px; color: #e8dcc2;
+}
+.next-step .ns-kicker { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-bright); font-weight: 700; }
+.next-step .ns-text { flex: 1; min-width: 0; line-height: 1.35; }
+.turn-toast {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 80; pointer-events: none;
+  background: linear-gradient(180deg, var(--maroon-bright), var(--maroon)); border: 1px solid var(--gold-bright);
+  color: #ffe9b8; padding: 8px 20px; border-radius: 999px; font-weight: 700;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55); animation: rise-in 0.22s ease;
+}
+
 /* region inspector: summary + always-visible orders, costs tucked into details */
 .region-title {
   display: flex; align-items: baseline; gap: 8px; font-family: var(--font-display); font-size: 17px; color: #f0e6cf;
@@ -472,6 +487,8 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   }
   .player-card { min-width: 210px; max-width: 240px; }
   .log-pane { display: none; }
+  .next-step { margin: 4px 4px 0; font-size: 13px; padding: 5px 9px; }
+  .turn-toast { top: 10px; }
   .controls { flex-direction: column; gap: 8px; height: auto; min-height: 0; max-height: 38vh; overflow-y: auto; }
   .controls .col { flex: none; overflow: visible; max-height: none; }
   .controls .col.region { flex: 1 1 auto; width: 100%; }

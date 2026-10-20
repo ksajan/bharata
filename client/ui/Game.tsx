@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { ABILITIES, EVENT_CARDS, PERSONALITIES, REGIONS } from '../../shared/data'
 import type { AbilityId, ArmyId, GameState } from '../../shared/types'
 import type { Transport } from '../transport'
@@ -32,6 +32,8 @@ export function Game(props: {
   const [revealDismissed, setRevealDismissed] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [ackedSeat, setAckedSeat] = useState<string | null>(null)
+  const [confirmEnd, setConfirmEnd] = useState(false)
+  const [turnToast, setTurnToast] = useState<string | null>(null)
 
   const me = mySeatId ? state.seats[mySeatId] : null
   const isMyTurn = !!me && state.activeSeat === mySeatId && (state.phase === 'resource' || state.phase === 'action')
@@ -63,12 +65,39 @@ export function Game(props: {
     if (hotseat && state.phase === 'draft') setAckedSeat(mySeatId)
   }, [hotseat, state.phase, mySeatId])
 
+  // an armed end-turn confirm should not survive a change of turn
+  useEffect(() => {
+    setConfirmEnd(false)
+  }, [state.activeSeat, state.phase, state.actionsLeft])
+
+  // online: announce whose court the table is waiting on
+  const prevSeat = useRef(state.activeSeat)
+  useEffect(() => {
+    const prev = prevSeat.current
+    prevSeat.current = state.activeSeat
+    if (hotseat || prev === state.activeSeat || state.phase === 'draft' || state.phase === 'gameover') return
+    const name = state.seats[state.activeSeat]?.name ?? 'A ruler'
+    setTurnToast(state.activeSeat === mySeatId ? 'Your turn' : `${name}'s turn`)
+    const t = setTimeout(() => setTurnToast(null), 2600)
+    return () => clearTimeout(t)
+  }, [state.activeSeat, state.phase, hotseat, mySeatId, state.seats])
+
   const send = async (action: Parameters<Transport['send']>[0]) => {
     try {
       await transport.send(action)
     } catch (e) {
       setError((e as Error).message)
     }
+  }
+
+  // end turn asks once when actions remain, so a stray click cannot forfeit them
+  const requestEndTurn = () => {
+    if (state.actionsLeft > 0 && !confirmEnd) {
+      setConfirmEnd(true)
+      return
+    }
+    setConfirmEnd(false)
+    send({ type: 'endTurn' })
   }
 
   // ----- derived gameplay sets -----
@@ -174,6 +203,28 @@ export function Game(props: {
               : `Turn — ${activeSeat?.name} of ${activeKingdom?.name} (${state.actionsLeft} action${state.actionsLeft === 1 ? '' : 's'} left)`
   const needsHandoff = hotseat && !!mySeatId && ackedSeat !== mySeatId
 
+  // exactly one recommended action for the current state — the coach strip
+  const nextStep: { text: string; action?: { label: string; run: () => void } } | null = (() => {
+    if (state.phase === 'gameover') return null
+    if (state.phase === 'draft') return { text: 'Choose your ruler’s persona to begin the age.' }
+    if (state.pendingBattle || state.pendingPrize) return null
+    if (!me) return { text: 'Watching the court — pick a side.' }
+    if (!isMyTurn) return { text: `Waiting for ${state.seats[state.activeSeat]?.name ?? 'the active ruler'}.` }
+    if (state.phase === 'resource' && !state.resourceCardDrawn) {
+      return { text: 'Draw the land’s bounty — every ruler gains it.', action: { label: 'Draw resource', run: () => send({ type: 'drawResource' }) } }
+    }
+    if (state.phase === 'resource') {
+      return { text: 'Sell surplus, recruit a card, then move to actions.', action: { label: 'To actions →', run: () => send({ type: 'endResource' }) } }
+    }
+    if (state.phase === 'event') return { text: 'Place the omen in a legal region — or skip if none is valid.' }
+    if (state.phase === 'action') {
+      if (state.actionsLeft <= 0) return { text: 'No actions left — close out the turn.', action: { label: 'End turn →', run: requestEndTurn } }
+      if (!selectedArmyObj) return { text: 'Select an army below, then click a dashed neighbour to march.' }
+      return { text: 'Click a dashed neighbouring region to march, or inspect a region for orders.' }
+    }
+    return null
+  })()
+
   return (
     <div className={`game ${focusBoard ? 'focus-board' : ''}`}>
       {/* ---------- top bar ---------- */}
@@ -206,9 +257,22 @@ export function Game(props: {
         </button>
       </div>
 
+      {turnToast && <div className="turn-toast" role="status">{turnToast}</div>}
+
       <div className="game-main">
         {/* ---------- board ---------- */}
         <div className="board-pane">
+          {nextStep && (
+            <div className="next-step" role="status">
+              <span className="ns-kicker">Next</span>
+              <span className="ns-text">{nextStep.text}</span>
+              {nextStep.action && (
+                <button className="small primary" onClick={nextStep.action.run}>
+                  {nextStep.action.label}
+                </button>
+              )}
+            </div>
+          )}
           {isMyTurn && afflictedRegions.length > 0 && state.phase === 'action' && (
             <div className="pill" style={{ margin: '8px 12px -2px', alignSelf: 'flex-start', borderColor: '#b03a2e', color: '#ffb0a0' }}>
               🔥 {afflictedRegions
@@ -409,7 +473,7 @@ export function Game(props: {
                           <span key={aid} className="actions-row">
                             <button
                               className="ghost"
-                              title="Army cards are that hand's battle strength. Reinforcing a destroyed army re-awakens it at your capital."
+                              title={me!.coins < state.config.armyCardCost ? `Need ${state.config.armyCardCost} coins — you have ${me!.coins}` : 'Army cards are that hand\'s battle strength. Reinforcing a destroyed army re-awakens it at your capital.'}
                               disabled={me!.coins < state.config.armyCardCost}
                               onClick={() => send({ type: 'buyArmyCard', armyId: aid })}
                             >
@@ -417,7 +481,7 @@ export function Game(props: {
                             </button>
                             <button
                               className="ghost"
-                              title="Bend iron into weapons: 2 iron + 1 coin for one army card"
+                              title={me!.iron < 2 ? `Need 2 iron — you have ${me!.iron}` : me!.coins < 1 ? 'Need 1 coin' : 'Bend iron into weapons: 2 iron + 1 coin for one army card'}
                               disabled={me!.iron < 2 || me!.coins < 1}
                               onClick={() => send({ type: 'buyArmyCard', armyId: aid, forge: true })}
                             >
@@ -462,7 +526,12 @@ export function Game(props: {
                       ↺ Undo march
                     </button>
                   )}
-                  <button className="ghost small" disabled={me!.coins < state.config.extraActionCost} onClick={() => send({ type: 'buyExtraAction' })}>
+                  <button
+                    className="ghost small"
+                    disabled={me!.coins < state.config.extraActionCost}
+                    title={me!.coins < state.config.extraActionCost ? `Need ${state.config.extraActionCost} coin — you have ${me!.coins}` : 'Buy one more action this turn'}
+                    onClick={() => send({ type: 'buyExtraAction' })}
+                  >
                     + Buy action · {state.config.extraActionCost} <Ico kind="coin" title="coins"/>
                   </button>
                   {me!.abilities
@@ -472,6 +541,7 @@ export function Game(props: {
                         key={ab}
                         className="ghost small"
                         disabled={(me!.abilityUsesLeft[ab] ?? 0) <= 0}
+                        title={(me!.abilityUsesLeft[ab] ?? 0) <= 0 ? 'No uses left this game' : ABILITIES[ab].desc}
                         onClick={() => {
                           if (ab === 'river_sage') {
                             const withEvents = Object.entries(state.regions)
@@ -491,9 +561,14 @@ export function Game(props: {
                         {ABILITIES[ab].name} ({me!.abilityUsesLeft[ab] ?? 0})
                       </button>
                     ))}
-                  <button className="primary" onClick={() => send({ type: 'endTurn' })}>
-                    End Turn →
+                  <button className="primary" onClick={requestEndTurn}>
+                    {confirmEnd ? 'End with actions left?' : 'End Turn →'}
                   </button>
+                  {confirmEnd && (
+                    <button className="ghost small" onClick={() => setConfirmEnd(false)}>
+                      Keep playing
+                    </button>
+                  )}
                 </div>
                 <div className="hint">
                   Select an army below, then click a neighboring region to march. Click any region for details & orders.
