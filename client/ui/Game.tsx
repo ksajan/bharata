@@ -36,6 +36,9 @@ export function Game(props: {
   const [confirmEnd, setConfirmEnd] = useState(false)
   const [turnToast, setTurnToast] = useState<string | null>(null)
   const [seenCard, setSeenCard] = useState<string | null>(null)
+  const [logOpen, setLogOpen] = useState(true)
+  const [logFilter, setLogFilter] = useState<'all' | 'battle' | 'event'>('all')
+  const [unread, setUnread] = useState(0)
 
   const me = mySeatId ? state.seats[mySeatId] : null
   const isMyTurn = !!me && state.activeSeat === mySeatId && (state.phase === 'resource' || state.phase === 'action')
@@ -128,6 +131,17 @@ export function Game(props: {
     setConfirmEnd(false)
     send({ type: 'endTurn' })
   }
+
+  // chronicle unread count while collapsed
+  const prevLogLen = useRef(state.log.length)
+  useEffect(() => {
+    const delta = state.log.length - prevLogLen.current
+    prevLogLen.current = state.log.length
+    if (delta > 0 && !logOpen) setUnread((u) => u + delta)
+  }, [state.log.length, logOpen])
+  useEffect(() => {
+    if (logOpen) setUnread(0)
+  }, [logOpen])
 
   // ----- derived gameplay sets -----
   const myArmies = useMemo(
@@ -371,61 +385,113 @@ export function Game(props: {
             {Object.values(state.seats).map((s) => {
               const k = state.kingdoms[s.kingdomId]
               const forts = Object.values(k.forts).filter((x) => x === k.id).length
+              const active = s.id === state.activeSeat
+              const armies = state.armies.filter((a) => a.ownerId === s.id)
+              const compact = Object.keys(state.seats).length > 4 && !active
               return (
-                <div key={s.id} className={`player-card ${s.id === state.activeSeat ? 'active' : ''}`}>
-                  <div className="row1">
+                <div key={s.id} className={`player-card ${active ? 'active' : ''} ${compact ? 'compact' : ''}`}>
+                  <div className="pc-head">
                     <span className="pc-dot" style={{ background: s.color }} />
-                    {s.name}
-                    {!s.connected && <span style={{ fontSize: 11, color: '#b03a2e' }}>⌁</span>}
-                    <span style={{ marginLeft: 'auto', fontFamily: 'Rozha One, serif', fontWeight: 400 }}>
-                      {s.vp}
-                      <span style={{ fontSize: 11, color: '#95876a' }}>/{state.config.vpTarget}</span>
+                    <span className="pc-name">{s.name}</span>
+                    {active && <span className="pc-playing">playing</span>}
+                    {!s.connected && (
+                      <span className="pc-off" title="reconnecting">
+                        ⌁
+                      </span>
+                    )}
+                    <span className="pc-vp">
+                      <b>{s.vp}</b>
+                      <span>/{state.config.vpTarget}</span>
                     </span>
                   </div>
-                  <div className="kingdom">
-                    Kingdom of {k.name} · {forts} fort{forts === 1 ? '' : 's'} · capital {REGIONS[k.capital].name}
+                  <div className="pc-kingdom">
+                    {k.name} · {forts} fort{forts === 1 ? '' : 's'} · {REGIONS[k.capital].name}
                   </div>
                   <div className="vp-bar">
                     <div style={{ width: `${Math.min(100, (s.vp / state.config.vpTarget) * 100)}%` }} />
                   </div>
-                  <div className="pc-stats">
-                    <span><Ico kind="coin" title="coins"/> <b>{s.coins}</b></span>
-                    <span><Ico kind="iron" title="iron"/> <b>{s.iron}</b></span>
-                    <span><Ico kind="wood" title="wood"/> <b>{s.wood}</b></span>
-                    <span><Ico kind="food" title="food"/> <b>{s.food}</b></span>
-                    <span><Ico kind="trade" title="trade goods"/> <b>{s.trade}</b></span>
-                    {state.config.advanced && <span><Ico kind="medicine" title="medicine"/> <b>{s.medicine}</b></span>}
-                    <span><Ico kind="sword" title="battles won"/> <b>{s.winsBattles}</b></span>
-                  </div>
-                  <div className="pc-armies">
-                    {state.armies
-                      .filter((a) => a.ownerId === s.id)
-                      .map((a) => (
-                        <span key={a.id}>
-                          Army {a.armyId === 1 ? 'I' : 'II'}:{' '}
-                          {a.alive ? `${a.cards.reduce((t, c) => t + c.value, 0)} @ ${a.regionId ? REGIONS[a.regionId].name : '?'}` : 'destroyed'}
-                        </span>
-                      ))}
-                  </div>
-                  {s.personality && (
-                    <div className="pc-traits">
-                      {PERSONALITIES[s.personality].name}
-                      {s.abilities.length > 0 && ' · ' + s.abilities.map((ab) => `${ABILITIES[ab].name} (${s.abilityUsesLeft[ab] ?? 0})`).join(', ')}
-                    </div>
+                  {!compact && (
+                    <>
+                      <div className="pc-stats">
+                        <span title={`${s.coins} coins`}><Ico kind="coin" title="coins" /> {s.coins}</span>
+                        <span title={`${s.iron} iron`}><Ico kind="iron" title="iron" /> {s.iron}</span>
+                        <span title={`${s.wood} wood`}><Ico kind="wood" title="wood" /> {s.wood}</span>
+                        <span title={`${s.food} food`}><Ico kind="food" title="food" /> {s.food}</span>
+                        <span title={`${s.trade} trade goods`}><Ico kind="trade" title="trade" /> {s.trade}</span>
+                        {state.config.advanced && (
+                          <span title={`${s.medicine} medicine`}><Ico kind="medicine" title="medicine" /> {s.medicine}</span>
+                        )}
+                        <span title={`${s.winsBattles} battles won`}><Ico kind="sword" title="battles won" /> {s.winsBattles}</span>
+                      </div>
+                      <div className="pc-armies">
+                        {armies.map((a) => {
+                          const power = a.cards.reduce((t, c) => t + c.value, 0)
+                          return (
+                            <span
+                              key={a.id}
+                              className={`pc-army ${a.alive ? '' : 'dead'}`}
+                              title={
+                                a.alive
+                                  ? `${a.regionId ? REGIONS[a.regionId].name : 'in the field'} · ${a.cards.length} cards · power ${power}`
+                                  : 'destroyed — reinforce at your capital'
+                              }
+                            >
+                              <b>{a.armyId === 1 ? 'I' : 'II'}</b>
+                              {a.alive ? <> {power}⚔️ · {a.cards.length}c</> : ' ☠'}
+                            </span>
+                          )
+                        })}
+                      </div>
+                      {s.personality && (
+                        <div
+                          className="pc-traits"
+                          title={s.abilities.map((ab) => `${ABILITIES[ab].name}: ${ABILITIES[ab].desc}`).join(' · ')}
+                        >
+                          {PERSONALITIES[s.personality].name}
+                          {s.abilities.length > 0 && (
+                            <> · {s.abilities.map((ab) => `${ABILITIES[ab].name} ${s.abilityUsesLeft[ab] ?? 0}`).join(' · ')}</>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )
             })}
           </div>
-          <div className="log-pane">
-            <h3>Chronicle</h3>
-            <div className="log-feed">
-              {[...state.log].reverse().map((l) => (
-                <div key={l.id} className={`log-entry ${l.kind ?? ''}`}>
-                  {l.text}
+          <div className={`log-pane ${logOpen ? '' : 'collapsed'}`}>
+            <div className="log-head">
+              <button className="log-toggle" onClick={() => setLogOpen((o) => !o)} aria-expanded={logOpen}>
+                <h3>Chronicle</h3>
+                {unread > 0 && <span className="log-unread">{unread}</span>}
+                <span className="log-chev">{logOpen ? '▾' : '▸'}</span>
+              </button>
+              {logOpen && (
+                <div className="log-filters">
+                  {(['all', 'battle', 'event'] as const).map((f) => (
+                    <button
+                      key={f}
+                      className={`log-filter ${logFilter === f ? 'on' : ''}`}
+                      onClick={() => setLogFilter(f)}
+                    >
+                      {f === 'all' ? 'All' : f === 'battle' ? 'Battles' : 'Events'}
+                    </button>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
+            {logOpen && (
+              <div className="log-feed">
+                {[...state.log]
+                  .reverse()
+                  .filter((l) => logFilter === 'all' || l.kind === logFilter)
+                  .map((l) => (
+                    <div key={l.id} className={`log-entry ${l.kind ?? ''}`}>
+                      {l.text}
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
