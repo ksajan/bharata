@@ -155,6 +155,15 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   text-indent: 1.2em;
 }
 .menu-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 26px; }
+.resume-banner {
+  display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; margin-top: 18px;
+  padding: 12px 16px; border-radius: 12px; border: 1.5px solid var(--maroon);
+  background: linear-gradient(160deg, #fff6df, #f3e2bd); color: var(--ink);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+.resume-banner span { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.09em; color: #8a5a1c; font-weight: 700; }
+.resume-banner b { font-family: var(--font-display); font-size: 17px; color: var(--maroon); font-weight: 400; }
+.resume-banner:hover:not(:disabled) { background: #fff6df; border-color: var(--maroon-bright); color: var(--ink); }
 .menu-modes .mode-card:nth-child(1) { animation: rise-in 0.5s 0.08s ease backwards; }
 .menu-modes .mode-card:nth-child(2) { animation: rise-in 0.5s 0.16s ease backwards; }
 .menu-form { animation: rise-in 0.5s 0.24s ease backwards; }

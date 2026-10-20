@@ -20,6 +20,8 @@ export interface Transport {
   onRoom(cb: (room: LobbySnapshot | null) => void): void
   onState(cb: (state: GameState | null) => void): void
   onError(cb: (message: string) => void): void
+  /** hot-seat only: fires with the *full* engine state after every action */
+  onSnapshot?(cb: (state: GameState) => void): void
   create(name: string): Promise<void>
   join(code: string, name: string): Promise<void>
   setConfig(cfg: Partial<GameConfig>): Promise<void>
@@ -52,6 +54,46 @@ export function lastSeat(): { code: string; token: string } | null {
     }
   }
   return null
+}
+
+const HOTSEAT_KEY = 'bharata-hotseat-v1'
+const SNAPSHOT_LOG_LIMIT = 120
+
+interface HotseatSnapshot {
+  v: 1
+  savedAt: number
+  state: GameState
+}
+
+export function loadHotseat(): HotseatSnapshot | null {
+  try {
+    const raw = localStorage.getItem(HOTSEAT_KEY)
+    if (!raw) return null
+    const snap = JSON.parse(raw) as HotseatSnapshot
+    if (snap.v !== 1 || !snap.state?.seats || !snap.state.kingdoms) return null
+    return snap
+  } catch {
+    return null
+  }
+}
+
+export function saveHotseat(state: GameState) {
+  try {
+    const pruned: GameState = { ...state, log: state.log.slice(-SNAPSHOT_LOG_LIMIT) }
+    localStorage.setItem(HOTSEAT_KEY, JSON.stringify({ v: 1, savedAt: Date.now(), state: pruned }))
+  } catch {
+    /* quota or private mode — a refresh simply starts fresh */
+  }
+}
+
+export function clearHotseat() {
+  localStorage.removeItem(HOTSEAT_KEY)
+}
+
+export function hotseatSeatNames(state: GameState): string[] {
+  return Object.values(state.seats)
+    .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
+    .map((s) => s.name)
 }
 
 interface UndoMark {
@@ -205,6 +247,7 @@ export class HotseatTransport implements Transport {
   private state: GameState | null = null
   private stateCbs: ((s: GameState | null) => void)[] = []
   private errorCbs: ((m: string) => void)[] = []
+  private snapshotCbs: ((s: GameState) => void)[] = []
   private names: string[] = []
   private lastView: GameState | null = null
   private undoMark: UndoMark | null = null
@@ -217,8 +260,12 @@ export class HotseatTransport implements Transport {
   onError(cb: (m: string) => void) {
     this.errorCbs.push(cb)
   }
+  onSnapshot(cb: (s: GameState) => void) {
+    this.snapshotCbs.push(cb)
+  }
 
   private emitState() {
+    if (this.state) this.snapshotCbs.forEach((cb) => cb(this.state as GameState))
     const viewSeat = this.currentViewSeat()
     const sanitized = this.state ? sanitizeState(this.state, viewSeat) : null
     this.lastView = sanitized as GameState | null
@@ -247,6 +294,13 @@ export class HotseatTransport implements Transport {
     this.names = names
     const seats = names.map((n, i) => ({ id: `s${i}`, name: n }))
     this.state = createGame(cfg, seats)
+    this.emitState()
+  }
+
+  /** restore a persisted table (refresh / crash recovery) */
+  async resume(state: GameState) {
+    this.state = structuredClone(state)
+    this.names = hotseatSeatNames(state)
     this.emitState()
   }
 

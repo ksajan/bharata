@@ -1,6 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react'
 import type { GameConfig, GameState } from '../shared/types'
-import { HotseatTransport, OnlineTransport, Transport, lastSeat, type LobbySnapshot } from './transport'
+import {
+  HotseatTransport,
+  OnlineTransport,
+  Transport,
+  clearHotseat,
+  hotseatSeatNames,
+  lastSeat,
+  loadHotseat,
+  saveHotseat,
+  type LobbySnapshot,
+} from './transport'
 import { Game } from './ui/Game'
 import { RulesGuide } from './ui/RulesGuideLazy'
 
@@ -53,10 +63,25 @@ export default function App() {
   const [joinCode, setJoinCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [showGuide, setShowGuide] = useState(false)
+  const [resumeInfo, setResumeInfo] = useState<{ names: string[]; round: number } | null>(() => {
+    const snap = loadHotseat()
+    return snap ? { names: hotseatSeatNames(snap.state), round: snap.state.round } : null
+  })
 
   useEffect(() => {
     return () => transportRef.current?.dispose()
   }, [])
+
+  // warn before a refresh throws away a local table
+  useEffect(() => {
+    if (screen !== 'game' || transport?.mode !== 'hotseat') return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [screen, transport])
 
   const attach = (t: Transport) => {
     transportRef.current?.dispose()
@@ -72,6 +97,15 @@ export default function App() {
       if (s) setScreen('game')
     })
     t.onError((m) => setError(m))
+    t.onSnapshot?.((s) => {
+      if (s.phase === 'gameover') {
+        clearHotseat()
+        setResumeInfo(null)
+      } else {
+        saveHotseat(s)
+        setResumeInfo({ names: hotseatSeatNames(s), round: s.round })
+      }
+    })
   }
 
   const screenRef = useRef(screen)
@@ -104,6 +138,20 @@ export default function App() {
 
   const startHotseat = () => setScreen('hotseat-setup')
 
+  const resumeHotseat = () => {
+    const snap = loadHotseat()
+    if (!snap) {
+      setResumeInfo(null)
+      return
+    }
+    setError(null)
+    const t = new HotseatTransport()
+    attach(t)
+    t.resume(snap.state)
+      .then(() => setScreen('game'))
+      .catch((e) => setError((e as Error).message))
+  }
+
   const rejoinLast = async () => {
     const seat = lastSeat()
     if (!seat) return
@@ -135,6 +183,8 @@ export default function App() {
           onOnlineJoin={() => startOnline(false)}
           onRejoin={rejoinLast}
           rejoinCode={lastSeat()?.code ?? null}
+          resume={resumeInfo}
+          onResume={resumeHotseat}
           onGuide={() => setShowGuide(true)}
           error={error}
         />
@@ -191,6 +241,8 @@ export default function App() {
             if (transport.mode === 'hotseat') {
               transport.dispose()
               transportRef.current = null
+              clearHotseat()
+              setResumeInfo(null)
               setTransport(null)
               setState(null)
               setScreen('menu')
@@ -233,6 +285,8 @@ function MenuScreen(props: {
   onOnlineJoin: () => void
   onRejoin: () => void
   rejoinCode: string | null
+  resume: { names: string[]; round: number } | null
+  onResume: () => void
   onGuide: () => void
   error: string | null
 }) {
@@ -250,6 +304,14 @@ function MenuScreen(props: {
             defend. <b>Each turn: draw resources → take 2 actions → face an event.</b> First to the VP target wins.
           </div>
         </div>
+        {props.resume && (
+          <button className="resume-banner" onClick={props.onResume}>
+            <span>↻ Resume the age in progress</span>
+            <b>
+              {props.resume.names.join(' · ')} — round {props.resume.round}
+            </b>
+          </button>
+        )}
         <div className="menu-modes">
           <button className="mode-card" onClick={props.onHotseat}>
             <h3>Same Screen</h3>
