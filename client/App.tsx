@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import type { GameConfig, GameState } from '../shared/types'
 import { HotseatTransport, OnlineTransport, Transport, lastSeat, type LobbySnapshot } from './transport'
 import { Game } from './ui/Game'
-import { RulesGuide } from './ui/RulesGuide'
+import { RulesGuide } from './ui/RulesGuideLazy'
 
 const RULER_NAMES = ['Bimbisara', 'Prasenajit', 'Chandaka', 'Udayana', 'Ajatashatru', 'Mahavira', 'Nandivardhana', 'Shishunaga']
 

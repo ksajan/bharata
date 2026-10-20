@@ -208,6 +208,13 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
 .board-scroll { flex: 1; min-height: 0; display: flex; padding: 8px 10px; }
 
 .board-stage { position: relative; flex: 1; min-height: 0; min-width: 0; display: flex; }
+/* static grain tile instead of a full-board turbulence filter */
+.board-stage::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 14px;
+  background-image: radial-gradient(rgba(90, 62, 28, 0.12) 0.6px, transparent 0.8px);
+  background-size: 3px 3px; opacity: 0.55;
+}
+.game.focus-board .board-stage::after { border-radius: 0; }
 .board-controls {
   position: absolute; right: 10px; top: 10px; z-index: 5; display: flex; align-items: center; gap: 4px;
   padding: 4px 6px; border-radius: 999px; border: 1px solid #6b5325;
@@ -412,8 +419,8 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
 .region:hover .region-shape { filter: brightness(1.12); }
 .region.selected .region-shape { stroke: #fff; stroke-width: 3.5; animation: sel-glow 1.8s ease-in-out infinite; }
 @keyframes sel-glow { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.45; } }
-.region.moveable .region-shape { stroke: #ffe9b8; stroke-dasharray: 6 4; }
-.region.moveable { animation: pulse 1.4s infinite; }
+.region.moveable .region-shape { stroke: #ffe9b8; stroke-dasharray: 6 4; animation: dash-march 1.2s linear infinite; }
+@keyframes dash-march { to { stroke-dashoffset: -20; } }
 @keyframes pulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.2); } }
 .region-label { font-family: var(--font-display); font-weight: 700; fill: #3a2812; pointer-events: none; }
 .region-sub { fill: #452f12; pointer-events: none; }

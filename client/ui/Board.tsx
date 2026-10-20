@@ -7,7 +7,7 @@ type Box = { x: number; y: number; w: number; h: number }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
-export function Board(props: {
+export const Board = React.memo(function Board(props: {
   state: GameState
   selectedRegion: string | null
   moveTargets: Set<string>
@@ -17,6 +17,11 @@ export function Board(props: {
   onToggleFocus?: () => void
 }) {
   const { state, selectedRegion, moveTargets, evtTargets, onRegion, focusMode, onToggleFocus } = props
+
+  if (import.meta.env.DEV) {
+    const w = window as unknown as { __boardRenders?: number }
+    w.__boardRenders = (w.__boardRenders ?? 0) + 1
+  }
 
   const fit = useMemo<Box>(() => {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -190,12 +195,6 @@ export function Board(props: {
           <stop offset="78%" stopColor="#cdb684" />
           <stop offset="100%" stopColor="#b99a63" />
         </radialGradient>
-        {/* painted-manuscript grain over the whole board */}
-        <filter id="paperGrain" x="0" y="0" width="100%" height="100%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="n" />
-          <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.12  0 0 0 0.6 0" />
-          <feComposite operator="in" in2="SourceGraphic" />
-        </filter>
         {/* gentle ink-wash mottling for the land */}
         <filter id="inkWash" x="-20%" y="-20%" width="140%" height="140%">
           <feTurbulence type="fractalNoise" baseFrequency="0.012 0.015" numOctaves="3" seed="7" stitchTiles="stitch" result="w" />
@@ -357,13 +356,8 @@ export function Board(props: {
                   transform={`translate(${c.x + spread}, ${c.y + 2})`}
                   pointerEvents="none"
                 >
-                  <circle
-                    r={12.5}
-                    fill={seatColor(a.seatId)}
-                    stroke="#ffe9b8"
-                    strokeWidth={2.5}
-                    style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.45))' }}
-                  />
+                  <ellipse cx={0} cy={9} rx={11} ry={3.2} fill="rgba(40, 24, 8, 0.4)" />
+                  <circle r={12.5} fill={seatColor(a.seatId)} stroke="#ffe9b8" strokeWidth={2.5} />
                   <circle r={12.5} fill="url(#armyDisc)" pointerEvents="none" />
                   <text x={0} y={-1} textAnchor="middle" fontSize={11} fontWeight={900} fill="#fff" fontFamily="Rozha One, serif">
                     {a.armyId === 1 ? 'I' : 'II'}
@@ -440,20 +434,10 @@ export function Board(props: {
         )
       })}
 
-      {/* unified manuscript grain over everything */}
-      <rect
-        x={minX}
-        y={minY}
-        width={maxX - minX}
-        height={maxY - minY}
-        filter="url(#paperGrain)"
-        opacity="0.14"
-        pointerEvents="none"
-      />
       </svg>
     </div>
   )
-}
+})
 
 const YIELD_ICON: Record<string, IconKind> = { iron: 'iron', wood: 'wood', food: 'food' }
 
