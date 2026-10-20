@@ -127,11 +127,10 @@ export function Game(props: {
     isMyTurn &&
     state.phase === 'action' &&
     state.actionsLeft > 0 &&
-    selectedRegion &&
+    !!selectedRegion &&
     myArmyInSelected.length > 0 &&
     selRuler !== me?.kingdomId &&
-    enemyInSelected.length === 0 &&
-    !!selRuler !== false // neutral or enemy-held (no enemy army)
+    enemyInSelected.length === 0
   const canAttack = isMyTurn && state.phase === 'action' && myArmyInSelected.length > 0 && enemyInSelected.length > 0
   const canReveal =
     isMyTurn && state.config.advanced && !!selectedBState?.hiddenToken && myArmyInSelected.length > 0
