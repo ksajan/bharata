@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test'
+import { dismissReveal } from './helpers'
 
 let pageErrors: string[] = []
 
@@ -116,8 +117,9 @@ test.describe('Bharata hot-seat journey', () => {
 
     // resource phase
     await page.getByText(/Draw Resource Card/).click()
+    await dismissReveal(page)
     await expect(page.locator('.resource-card')).toBeVisible()
-    await page.getByText('To Actions →').click()
+    await page.locator('.controls').getByRole('button', { name: 'To Actions →' }).click()
     await expect(page.locator('.phase-step.on')).toHaveText('Actions')
 
     // move army I to a highlighted neighbor, then conquer / battle
@@ -131,6 +133,8 @@ test.describe('Bharata hot-seat journey', () => {
 
     // end turn → advanced event phase → prize if a condition was met → next ruler
     await page.getByText('End Turn →').click()
+    const endAnyway = page.getByRole('button', { name: 'End with actions left?' })
+    if (await endAnyway.isVisible().catch(() => false)) await endAnyway.click()
     await placeEventOrSkip(page)
     await resolvePrizesIfAny(page)
     await expect(page.locator('.turn-banner')).toContainText('Prasenajit', { timeout: 15_000 })
@@ -139,6 +143,7 @@ test.describe('Bharata hot-seat journey', () => {
     // pass the device to the second ruler, then their resource phase
     await page.getByRole('button', { name: 'I am Prasenajit' }).click()
     await page.getByText(/Draw Resource Card/).click()
+    await dismissReveal(page)
     await expect(page.locator('.resource-card')).toBeVisible()
   })
 })

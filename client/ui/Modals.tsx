@@ -1,7 +1,58 @@
 import React, { useMemo, useState } from 'react'
 import { ABILITIES, CONDITIONS, EVENT_CARDS, HIDDEN_TOKEN_LABEL, PERSONALITIES, REGIONS } from '../../shared/data'
-import type { AbilityId, GameState, PersonalityId } from '../../shared/types'
+import type { AbilityId, GameState, PersonalityId, ResourceCardDef } from '../../shared/types'
 import type { Transport } from '../transport'
+
+// ---------------------------------------------------------------------------
+// Resource reveal
+// ---------------------------------------------------------------------------
+
+const RESOURCE_GLYPH: Record<string, string> = { iron: '⛏', wood: '🪵', food: '🌾', trade: '🧵', coins: '🪙', medicine: '🌿' }
+
+function grantChips(gains?: Partial<Record<string, number>>) {
+  if (!gains) return null
+  return Object.entries(gains)
+    .filter((e): e is [string, number] => typeof e[1] === 'number' && e[1] !== 0)
+    .map(([kind, n]) => (
+      <span key={kind} className="grant-chip">
+        {RESOURCE_GLYPH[kind] ?? kind} {n > 0 ? `+${n}` : n}
+      </span>
+    ))
+}
+
+export function ResourceRevealModal(props: { card: ResourceCardDef; onClose: () => void }) {
+  const { card, onClose } = props
+  return (
+    <div className="modal-backdrop lite">
+      <div className="modal resource-reveal" role="dialog" aria-modal="true" aria-label={`Resource card: ${card.title}`}>
+        <div className="rr-kicker">Resource phase · the land speaks</div>
+        <div className="rr-card">
+          <div className="rr-title">{card.title}</div>
+          <p className="rr-text">{card.text}</p>
+          <div className="rr-grants">
+            {card.all && (
+              <div>
+                <span className="rr-label">All rulers</span>
+                {grantChips(card.all)}
+              </div>
+            )}
+            {card.active && (
+              <div>
+                <span className="rr-label">You (extra)</span>
+                {grantChips(card.active)}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="btn-row" style={{ justifyContent: 'center' }}>
+          <button className="primary" onClick={onClose}>
+            Take the bounty
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Draft
