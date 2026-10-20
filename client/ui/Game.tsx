@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ABILITIES, EVENT_CARDS, PERSONALITIES, REGIONS } from '../../shared/data'
 import type { AbilityId, ArmyId, GameState } from '../../shared/types'
 import type { Transport } from '../transport'
 import { Board } from './Board'
-import { RulesGuide } from './RulesGuide'
+import { RulesGuide } from './RulesGuideLazy'
 import { Ico } from './icons'
 import {
   BattleCommitModal,
@@ -112,25 +112,30 @@ export function Game(props: {
     return () => clearTimeout(t)
   }, [state.activeSeat, state.phase, hotseat, mySeatId, state.seats])
 
-  const send = async (action: Parameters<Transport['send']>[0]) => {
-    try {
-      await transport.send(action)
-      return true
-    } catch (e) {
-      setError((e as Error).message)
-      return false
-    }
-  }
+  const send = useCallback(
+    async (action: Parameters<Transport['send']>[0]) => {
+      try {
+        await transport.send(action)
+        return true
+      } catch (e) {
+        setError((e as Error).message)
+        return false
+      }
+    },
+    [transport],
+  )
 
   // end turn asks once when actions remain, so a stray click cannot forfeit them
-  const requestEndTurn = () => {
+  const toggleFocus = useCallback(() => setFocusBoard((f) => !f), [])
+
+  const requestEndTurn = useCallback(() => {
     if (state.actionsLeft > 0 && !confirmEnd) {
       setConfirmEnd(true)
       return
     }
     setConfirmEnd(false)
     send({ type: 'endTurn' })
-  }
+  }, [state.actionsLeft, confirmEnd, send])
 
   // chronicle unread count while collapsed
   const prevLogLen = useRef(state.log.length)
@@ -171,19 +176,22 @@ export function Game(props: {
   }, [state, me])
 
   // ----- region interaction -----
-  const onRegion = (rid: string) => {
-    if (evtActive && state.activeSeat === mySeatId && evtTargets.has(rid)) {
-      send({ type: 'placeEventTarget', regionId: rid })
-      return
-    }
-    if (selectedArmyObj && moveTargets.has(rid)) {
-      send({ type: 'moveArmy', armyId: selectedArmyObj.armyId, to: rid })
-      setSelectedArmy(null)
-      setSelectedRegion(rid) // show the destination's orders (Conquer/Attack) immediately
-      return
-    }
-    setSelectedRegion(rid)
-  }
+  const onRegion = useCallback(
+    (rid: string) => {
+      if (evtActive && state.activeSeat === mySeatId && evtTargets.has(rid)) {
+        send({ type: 'placeEventTarget', regionId: rid })
+        return
+      }
+      if (selectedArmyObj && moveTargets.has(rid)) {
+        send({ type: 'moveArmy', armyId: selectedArmyObj.armyId, to: rid })
+        setSelectedArmy(null)
+        setSelectedRegion(rid) // show the destination's orders (Conquer/Attack) immediately
+        return
+      }
+      setSelectedRegion(rid)
+    },
+    [evtActive, state.activeSeat, mySeatId, evtTargets, selectedArmyObj, moveTargets, send],
+  )
 
   // ----- legality helpers for context buttons -----
   const selected = selectedRegion ? REGIONS[selectedRegion] : null
@@ -352,7 +360,7 @@ export function Game(props: {
               evtTargets={evtTargets}
               onRegion={onRegion}
               focusMode={focusBoard}
-              onToggleFocus={() => setFocusBoard((f) => !f)}
+              onToggleFocus={toggleFocus}
             />
           </div>
         </div>

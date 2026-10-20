@@ -16,7 +16,8 @@
     "sim:logic4p": "tsx scripts/playtest/logic-4p.ts",
     "e2e": "tsx scripts/e2e-socket.ts",
     "test:ui": "playwright test --config e2e/playwright.config.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "perf": "node scripts/perf.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",

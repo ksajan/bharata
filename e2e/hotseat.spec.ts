@@ -36,14 +36,23 @@ async function conquerIfPossible(page: Page) {
   const conquer = page.getByText(/🏳 Conquer/)
   if (await conquer.isVisible().catch(() => false)) {
     await conquer.click()
-    // Mahajanapada → card picker
-    const pay = page.getByText('Pay & Conquer')
+    // Mahajanapada → card picker: click cards until the payment is legal
+    const pay = page.getByRole('button', { name: 'Pay & Conquer' })
     if (await pay.isVisible().catch(() => false)) {
-      const need = Number((await page.getByText(/Selected \d+/).textContent())!.match(/\d+/)![0])
-      const cards = page.locator('.bcard', { hasText: 'pay' })
+      const cards = page.locator('.modal .bcard')
       const total = await cards.count()
-      for (let i = 0; i < Math.min(need, total); i++) await cards.nth(i).click()
-      await pay.click()
+      for (let i = 0; i < total; i++) {
+        if (await pay.isEnabled().catch(() => false)) break
+        await cards.nth(i).click()
+        await page.waitForTimeout(80)
+      }
+      if (await pay.isEnabled().catch(() => false)) {
+        await pay.click()
+      } else {
+        // not enough cards in hand for this region — leave it for next turn
+        const notYet = page.getByRole('button', { name: 'Not yet' })
+        if (await notYet.count()) await notYet.click()
+      }
     }
     await page.waitForTimeout(300)
     await resolveBattleIfAny(page) // conquering near enemies can chain
