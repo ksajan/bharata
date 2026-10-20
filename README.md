@@ -7,7 +7,7 @@ and be the first to the victory target.
 
 Supports **2–8 rulers** (2–4 solo kingdoms, 5–8 as co-ruled kingdoms), in two modes:
 
-- **⚔️ Online multiplayer** — host a room, share the 4-letter code, play live with friends anywhere.
+- **⚔️ Online multiplayer** — host a room, share the 5-character code, play live with friends anywhere.
 - **🛕 Same screen (hot-seat)** — pass-and-play on one device; the engine runs locally.
 
 ---
@@ -45,7 +45,7 @@ Any Node 18+ host works — the server is a single process serving both the API 
 | Player tracker (VP / iron / wood / food) | Live tracker in every player card, capped at 10 (tweakable) |
 | Resource modifier deck | 24-card deck; flips publicly, **all rulers gain** its grants, then the active court trades |
 | Coins & selling | Sell resources 2:1 for coins (tweakable); trade objects 2 coins each **if you control a harbor** |
-| Army cards (Army I & II) | Buy cards (3 coins) into either army; army stacks are public (like face-up cards) |
+| Army cards (Army I & II) | Buy cards (2 coins, tweakable) into either army; army stacks are public (like face-up cards) |
 | 2 free actions, 3rd+ costs 1 coin | Enforced exactly; buy extra actions with coins |
 | Move / conquer / battle | Move = 1 region; conquer = pay the region's number (coins for provinces, army cards for Mahajanapadas); battle = secret simultaneous commit, defender adds terrain value |
 | Forts & VP | Conquering places a fort, gains the region's value in VP plus its yields/trade; seizing a ruled region **steals** those VPs (tweakable) |
