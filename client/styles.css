@@ -260,7 +260,7 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
 .legend-strip summary { cursor: pointer; color: var(--gold); font-weight: 700; }
 .legend-strip[open] { background: rgba(255, 250, 235, 0.04); }
 .players-list {
-  flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 5px;
+  flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;
   scroll-snap-type: y proximity;
   mask-image: linear-gradient(180deg, #000 84%, rgba(0, 0, 0, 0.35) 97%);
   -webkit-mask-image: linear-gradient(180deg, #000 84%, rgba(0, 0, 0, 0.35) 97%);
@@ -342,7 +342,7 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   padding: 8px 14px; display: flex; gap: 14px; align-items: flex-start;
   height: 156px; min-height: 156px; max-height: 156px; overflow: hidden;
 }
-.controls .col { display: flex; flex-direction: column; gap: 5px; max-height: 100%; overflow-y: auto; padding-right: 4px; }
+.controls .col { display: flex; flex-direction: column; gap: 4px; max-height: 100%; overflow-y: auto; padding-right: 4px; }
 .controls .col.main { flex: 1; min-width: 0; }
 .controls .col.region { flex: 0 0 336px; width: 336px; }
 .controls h4 { margin: 0 0 2px; font-size: 13px; color: #95876a; letter-spacing: 0.08em; text-transform: uppercase; font-family: var(--font-body); }
@@ -592,7 +592,7 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   .log-pane { display: none; }
   .next-step { margin: 4px 4px 0; font-size: 13px; padding: 5px 9px; }
   .turn-toast { top: 10px; }
-  .controls { flex-direction: column; gap: 5px; height: auto; min-height: 0; max-height: 38vh; overflow-y: auto; }
+  .controls { flex-direction: column; gap: 4px; height: auto; min-height: 0; max-height: 38vh; overflow-y: auto; }
   .controls .col { flex: none; overflow: visible; max-height: none; }
   .controls .col.region { flex: 1 1 auto; width: 100%; }
   .controls .col.main { min-width: 0; }
