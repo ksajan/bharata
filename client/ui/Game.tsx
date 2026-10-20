@@ -101,16 +101,16 @@ export function Game(props: {
   }, [state.activeSeat, state.phase, state.actionsLeft])
 
   // online: announce whose court the table is waiting on
+  const activeSeatName = state.seats[state.activeSeat]?.name ?? 'A ruler'
   const prevSeat = useRef(state.activeSeat)
   useEffect(() => {
     const prev = prevSeat.current
     prevSeat.current = state.activeSeat
     if (hotseat || prev === state.activeSeat || state.phase === 'draft' || state.phase === 'gameover') return
-    const name = state.seats[state.activeSeat]?.name ?? 'A ruler'
-    setTurnToast(state.activeSeat === mySeatId ? 'Your turn' : `${name}'s turn`)
+    setTurnToast(state.activeSeat === mySeatId ? 'Your turn' : `${activeSeatName}'s turn`)
     const t = setTimeout(() => setTurnToast(null), 2600)
     return () => clearTimeout(t)
-  }, [state.activeSeat, state.phase, hotseat, mySeatId, state.seats])
+  }, [state.activeSeat, state.phase, hotseat, mySeatId, activeSeatName])
 
   const send = useCallback(
     async (action: Parameters<Transport['send']>[0]) => {

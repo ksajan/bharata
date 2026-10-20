@@ -383,8 +383,15 @@ function HotseatSetup(props: {
   const [cfg, setCfg] = useState<Partial<GameConfig>>({ ...CLASSIC_CFG })
   const [showGuide, setShowGuide] = useState(false)
 
+  // count-driven VP default, but never clobber a target the host chose by hand
+  const lastAutoVp = useRef<number>(20)
   useEffect(() => {
-    setCfg((c) => ({ ...c, vpTarget: count === 2 ? 25 : count > 4 ? 20 + Math.ceil((count - 4) / 2) * 5 : 20 }))
+    const next = count === 2 ? 25 : count > 4 ? 20 + Math.ceil((count - 4) / 2) * 5 : 20
+    const stillDefault = cfg.vpTarget === undefined || cfg.vpTarget === lastAutoVp.current
+    lastAutoVp.current = next
+    if (stillDefault) setCfg((c) => ({ ...c, vpTarget: next }))
+    // cfg is intentionally not a dependency: only a ruler-count change should adjust the default
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count])
 
   return (
