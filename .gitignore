@@ -1,0 +1,22 @@
+node_modules/
+dist/
+build/
+
+# test artifacts
+e2e/artifacts/
+test-results/
+playwright-report/
+blob-report/
+
+# env & local
+.env
+.env.*
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+npm-debug.log*
