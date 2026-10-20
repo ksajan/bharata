@@ -270,13 +270,29 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
 /* ---------- bottom control panel ---------- */
 .controls {
   border-top: 1px solid #4d3a22; background: linear-gradient(180deg, var(--chrome-2), var(--chrome));
-  padding: 10px 14px; display: flex; gap: 14px; align-items: stretch; min-height: 118px;
+  padding: 8px 14px; display: flex; gap: 14px; align-items: flex-start;
+  height: 156px; min-height: 156px; max-height: 156px; overflow: hidden;
 }
-.controls .col { display: flex; flex-direction: column; gap: 6px; }
+.controls .col { display: flex; flex-direction: column; gap: 5px; max-height: 100%; overflow-y: auto; padding-right: 4px; }
 .controls .col.main { flex: 1; min-width: 0; }
+.controls .col.region { flex: 0 0 336px; width: 336px; }
 .controls h4 { margin: 0 0 2px; font-size: 13px; color: #95876a; letter-spacing: 0.08em; text-transform: uppercase; font-family: var(--font-body); }
 .actions-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .hint { font-size: 13.5px; color: #b3a480; font-style: italic; }
+
+/* region inspector: summary + always-visible orders, costs tucked into details */
+.region-title {
+  display: flex; align-items: baseline; gap: 8px; font-family: var(--font-display); font-size: 17px; color: #f0e6cf;
+}
+.region-kind { font-family: var(--font-body); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: #95876a; }
+.region-value { margin-left: auto; color: var(--gold-bright); font-family: Georgia, serif; font-size: 15px; }
+.region-meta { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 13px; color: #b3a480; }
+.region-danger { color: #ffb0a0; }
+.region-gold { color: #e6bd63; }
+.region-actions { margin-top: 2px; }
+.region-more summary { cursor: pointer; font-size: 12.5px; color: #95876a; width: fit-content; }
+.region-more summary:hover { color: var(--gold-bright); }
+.region-body { font-size: 12.5px; color: #b3a480; line-height: 1.4; margin-top: 3px; }
 
 .resource-card {
   width: 168px; flex-shrink: 0; border-radius: 10px; border: 1.5px solid var(--gold);
@@ -456,8 +472,9 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   }
   .player-card { min-width: 210px; max-width: 240px; }
   .log-pane { display: none; }
-  .controls { flex-direction: column; gap: 8px; max-height: 34vh; overflow-y: auto; }
-  .controls .col { flex: none; }
+  .controls { flex-direction: column; gap: 8px; height: auto; min-height: 0; max-height: 38vh; overflow-y: auto; }
+  .controls .col { flex: none; overflow: visible; max-height: none; }
+  .controls .col.region { flex: 1 1 auto; width: 100%; }
   .controls .col.main { min-width: 0; }
   .board-controls { top: 6px; right: 6px; transform: scale(0.92); transform-origin: top right; }
   .board-stage.is-focus .board-controls { right: 10px; top: 10px; }
