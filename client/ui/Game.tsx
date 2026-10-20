@@ -116,6 +116,9 @@ export function Game(props: {
   // ----- legality helpers for context buttons -----
   const selected = selectedRegion ? REGIONS[selectedRegion] : null
   const selectedBState = selectedRegion ? state.regions[selectedRegion] : null
+  const selectedEventNames = (selectedBState?.eventTokens ?? [])
+    .map((t) => Object.values(EVENT_CARDS).find((c) => c.kind === t.kind)?.name)
+    .filter((n): n is string => !!n)
   const myArmyInSelected = selectedRegion
     ? myArmies.filter((a) => a.regionId === selectedRegion && a.alive)
     : []
@@ -186,7 +189,7 @@ export function Game(props: {
           ))}
         </div>
         <div className="turn-banner">{bannerText}</div>
-        <div className="pill">First to {state.config.vpTarget} VP</div>
+        <div className="pill vp-target">First to {state.config.vpTarget} VP</div>
         <button className="small ghost" onClick={() => setShowHelp(true)}>
           Rules
         </button>
@@ -551,51 +554,37 @@ export function Game(props: {
           </div>
         )}
 
-        {/* region column */}
-        <div className="col" style={{ minWidth: 230, maxWidth: 300 }}>
+        {/* region inspector */}
+        <div className="col region">
           <h4>Region</h4>
           {selected ? (
-            <div style={{ fontSize: 14, lineHeight: 1.35 }}>
-              <div style={{ fontWeight: 700, fontFamily: 'Rozha One, serif' }}>
-                {selected.name}{' '}
-                <span style={{ color: '#95876a' }}>
-                  ({selected.kind === 'province' ? 'province — paid in coins' : 'Mahajanapada — a Great Kingdom, paid in army cards'})
+            <>
+              <div className="region-title">
+                {selected.name}
+                <span className="region-kind">{selected.kind === 'province' ? 'Province' : 'Great Kingdom'}</span>
+                <span className="region-value" title="Value = VP = conquer cost = terrain bonus">
+                  ★ {selected.value}
                 </span>
               </div>
-              <div className="hint">
-                Value {selected.value} = its VP = conquer cost = defender's terrain bonus (max +3) ·{' '}
-                {Object.entries(selected.yields).filter(([, n]) => n).map(([r, n]) => `+${n} ${r}`).join(', ') || 'no yield'}
-                {selected.trade ? ` · +${selected.trade} trade` : ''}
-                {selected.harbor ? ' · ⚓ export harbor' : ''}
-                {selected.river ? ' · river' : ''}
-                {selected.arid ? ' · arid' : ''}
-              </div>
-              {selectedBState?.hiddenToken && (
-                <div className="hint" style={{ color: '#e6bd63' }}>
-                  ❓ A hidden token lies here — march an army in and Search it.
-                </div>
-              )}
-              <div className="hint">
-                Ruled by:{' '}
+              <div className="region-meta">
                 {selRuler ? (
-                  <b style={{ color: state.kingdoms[selRuler]?.color }}>
-                    {state.kingdoms[selRuler]?.name} ({Object.values(state.seats).find((s) => s.kingdomId === selRuler)?.name})
-                  </b>
+                  <span style={{ color: state.kingdoms[selRuler]?.color }}>
+                    ⚑ {state.kingdoms[selRuler]?.name} ({Object.values(state.seats).find((s) => s.kingdomId === selRuler)?.name})
+                  </span>
                 ) : (
-                  'no one'
+                  <span>unclaimed</span>
                 )}
+                {(selectedBState?.armies.length ?? 0) > 0 && (
+                  <span>
+                    ⚔ {selectedBState!.armies.map((a) => `${state.seats[a.seatId]?.name} ${a.armyId === 1 ? 'I' : 'II'}`).join(', ')}
+                  </span>
+                )}
+                {(selectedBState?.eventTokens.length ?? 0) > 0 && (
+                  <span className="region-danger">⭕ {selectedEventNames.join(', ')}</span>
+                )}
+                {selectedBState?.hiddenToken && <span className="region-gold">❓ hidden token</span>}
               </div>
-              {(selectedBState?.armies.length ?? 0) > 0 && (
-                <div className="hint">
-                  Armies: {selectedBState!.armies.map((a) => `${state.seats[a.seatId]?.name} ${a.armyId === 1 ? 'I' : 'II'}`).join(', ')}
-                </div>
-              )}
-              {(selectedBState?.eventTokens.length ?? 0) > 0 && (
-                <div className="hint" style={{ color: '#ffb0a0' }}>
-                  Events: {selectedBState!.eventTokens.map((t) => Object.values(EVENT_CARDS).find((c) => c.kind === t.kind)?.name).join(', ')}
-                </div>
-              )}
-              <div className="actions-row" style={{ marginTop: 6 }}>
+              <div className="actions-row region-actions">
                 {canConquer && (
                   <button className="primary small" onClick={() => doConquer(selectedRegion!)}>
                     🏳 Conquer ({selected.kind === 'province' ? `${selected.value - (me!.personality === 'master_mason' ? 1 : 0)}🪙` : `${selected.value} cards`})
@@ -608,7 +597,7 @@ export function Game(props: {
                 )}
                 {canReveal && (
                   <button className="ghost small" onClick={() => send({ type: 'revealHidden', regionId: selectedRegion! })}>
-                    🔍 Search hidden token
+                    🔍 Search token
                   </button>
                 )}
                 {canRemoveEvent && (
@@ -625,19 +614,38 @@ export function Game(props: {
                       title="Coin alternative: 3 coins per missing resource, minimum 3 coins"
                       onClick={() => send({ type: 'removeEvent', regionId: selectedRegion!, useCoins: true })}
                     >
-                      Clear with coins (3+ <Ico kind="coin" title="coins"/>)
+                      Clear with coins
                     </button>
                     {me!.medicine > 0 && (
                       <button className="ghost small" onClick={() => send({ type: 'removeEvent', regionId: selectedRegion!, useMedicine: true })}>
-                        🌿 Cure with Medicine
+                        🌿 Cure
                       </button>
                     )}
                   </>
                 )}
               </div>
-            </div>
+              <details className="region-more">
+                <summary>Details & costs</summary>
+                <div className="region-body">
+                  <div>
+                    Value {selected.value} = its VP = conquer cost = defender's terrain bonus (max +3).
+                  </div>
+                  <div>
+                    Yields:{' '}
+                    {Object.entries(selected.yields).filter(([, n]) => n).map(([r, n]) => `+${n} ${r}`).join(', ') || 'none'}
+                    {selected.trade ? ` · +${selected.trade} trade` : ''}
+                    {selected.harbor ? ' · ⚓ export harbor' : ''}
+                    {selected.river ? ' · river' : ''}
+                    {selected.arid ? ' · arid' : ''}
+                  </div>
+                  {selected.isCapitalOf && <div>Capital of {selected.isCapitalOf}.</div>}
+                  {selectedBState?.hiddenToken && <div>❓ Hidden token — march an army in and search it.</div>}
+                  <div>Ruled by {selRuler ? state.kingdoms[selRuler]?.name : 'no one'}.</div>
+                </div>
+              </details>
+            </>
           ) : (
-            <div className="hint">Click a region on the map to inspect it.</div>
+            <div className="hint">Pick a region to see its value, owner and orders.</div>
           )}
         </div>
       </div>
