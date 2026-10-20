@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { dismissReveal } from './helpers'
 
 /** The coach strip and the end-turn guard are the game's primary onboarding. */
 
@@ -32,6 +33,7 @@ test('the coach names the next step and guards a premature end turn', async ({ p
   await expect(coach).toContainText(/Draw the land/i)
 
   await page.locator('.next-step button').click()
+  await dismissReveal(page)
   await expect(coach).toContainText(/Sell surplus/i)
 
   await page.locator('.next-step button').click()

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { dismissReveal } from './helpers'
 
 let pageErrors: string[] = []
 
@@ -65,9 +66,11 @@ test.describe('Bharata online journey', () => {
     await expect(guest.locator('.turn-banner')).toContainText('Chandragupta')
     await host.getByText(/Draw Resource Card/).click()
     await expect(host.locator('.resource-card')).toBeVisible()
+    await dismissReveal(host)
+    await dismissReveal(guest)
     await expect(guest.locator('.resource-card')).toBeVisible({ timeout: 8000 })
 
-    await host.getByText('To Actions →').click()
+    await host.locator('.controls').getByRole('button', { name: 'To Actions →' }).click()
     await expect(guest.locator('.phase-step.on')).toHaveText('Actions', { timeout: 8000 })
     await expect(guest.getByText(/Chandragupta commands their armies…/)).toBeVisible()
 

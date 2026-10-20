@@ -12,6 +12,7 @@ import {
   EventModal,
   GameOverModal,
   PrizeModal,
+  ResourceRevealModal,
   eventTargetsFor,
 } from './Modals'
 
@@ -34,6 +35,7 @@ export function Game(props: {
   const [ackedSeat, setAckedSeat] = useState<string | null>(null)
   const [confirmEnd, setConfirmEnd] = useState(false)
   const [turnToast, setTurnToast] = useState<string | null>(null)
+  const [seenCard, setSeenCard] = useState<string | null>(null)
 
   const me = mySeatId ? state.seats[mySeatId] : null
   const isMyTurn = !!me && state.activeSeat === mySeatId && (state.phase === 'resource' || state.phase === 'action')
@@ -42,7 +44,32 @@ export function Game(props: {
   const sellRate = me?.personality === 'merchant_prince' ? 1 : state.config.sellRate
   const sellTotal = sell.iron + sell.wood + sell.food
   const tradeAllowed = !!me && (me.personality === 'merchant_prince' || kingdomHarborCount(state, me.kingdomId) > 0)
+  const sellPairsValid = sellTotal === 0 || sellTotal % sellRate === 0
   const sellGain = Math.floor(sellTotal / sellRate) + (tradeAllowed ? sell.trade * state.config.tradeValue : 0)
+  const spare = { iron: me?.iron ?? 0, wood: me?.wood ?? 0, food: me?.food ?? 0, trade: tradeAllowed ? (me?.trade ?? 0) : 0 }
+  // the engine sells whole groups only — leave the odd unit behind
+  const spareUnits = Math.floor((spare.iron + spare.wood + spare.food) / sellRate) * sellRate
+  const spareGain = spareUnits / sellRate + spare.trade * state.config.tradeValue
+  const spareSelection = (() => {
+    let left = spareUnits
+    const out = { iron: 0, wood: 0, food: 0, trade: spare.trade }
+    for (const r of ['iron', 'wood', 'food'] as const) {
+      out[r] = Math.min(spare[r], left)
+      left -= out[r]
+    }
+    return out
+  })()
+  const cardKey = state.lastResourceCard ? `${state.round}:${state.activeSeat}:${state.lastResourceCard.id}` : null
+  const showResourceReveal = !!cardKey && cardKey !== seenCard && state.resourceCardDrawn && state.phase !== 'draft'
+
+  const submitSell = async (sel: typeof sell) => {
+    const ok = await send({
+      type: 'sellResources',
+      resources: { iron: sel.iron, wood: sel.wood, food: sel.food },
+      trade: sel.trade,
+    })
+    if (ok) setSell({ iron: 0, wood: 0, food: 0, trade: 0 })
+  }
 
   useEffect(() => {
     if (error) {
@@ -85,8 +112,10 @@ export function Game(props: {
   const send = async (action: Parameters<Transport['send']>[0]) => {
     try {
       await transport.send(action)
+      return true
     } catch (e) {
       setError((e as Error).message)
+      return false
     }
   }
 
@@ -421,46 +450,67 @@ export function Game(props: {
                     </div>
                   ) : (
                     <>
-                      <div className="actions-row">
+                      <div className="actions-row sell-row">
                         <span className="hint" style={{ width: '100%' }}>
-                          Step 2 — choose what to sell (free & repeatable; unspent goods carry over) · Step 3 —
-                          recruit & press <b>To Actions</b>.
+                          Step 2 — click a good to add it to the sale; unspent goods carry over. Step 3 — recruit and press <b>To Actions</b>.
                         </span>
                         {(['iron', 'wood', 'food'] as const).map((r) => (
-                          <span key={r} className="pill" style={{ padding: '2px 8px' }}>
-                            <Ico kind={r} title={r}/> {me![r]} −
-                            <button className="small ghost" style={{ padding: '0 5px' }} onClick={() => setSell((s) => ({ ...s, [r]: Math.max(0, s[r] - 1) }))}>
-                              −
+                          <span key={r} className="sell-pill">
+                            <button
+                              className="sell-add"
+                              disabled={sell[r] >= me![r]}
+                              title={`Add 1 ${r}`}
+                              onClick={() => setSell((s) => ({ ...s, [r]: Math.min(me![r], s[r] + 1) }))}
+                            >
+                              <Ico kind={r} title={r} />
+                              <b>{sell[r]}</b>
+                              <span className="sell-have">/{me![r]}</span>
                             </button>
-                            <b style={{ margin: '0 4px' }}>{sell[r]}</b>
-                            <button className="small ghost" style={{ padding: '0 5px' }} onClick={() => setSell((s) => ({ ...s, [r]: Math.min(me![r], s[r] + 1) }))}>
-                              +
+                            <button
+                              className="sell-sub"
+                              disabled={sell[r] === 0}
+                              title={`Remove 1 ${r}`}
+                              onClick={() => setSell((s) => ({ ...s, [r]: Math.max(0, s[r] - 1) }))}
+                            >
+                              −
                             </button>
                           </span>
                         ))}
-                        <span className="pill" style={{ padding: '2px 8px' }} title="Trade objects sell for coins if you rule an export harbor (anchor on the map)">
-                          <Ico kind="trade" title="trade goods"/> {me!.trade} −
-                          <button className="small ghost" style={{ padding: '0 5px' }} onClick={() => setSell((s) => ({ ...s, trade: Math.max(0, s.trade - 1) }))}>
-                            −
+                        <span className="sell-pill">
+                          <button
+                            className="sell-add"
+                            disabled={!tradeAllowed || sell.trade >= me!.trade}
+                            title={tradeAllowed ? 'Add 1 trade good' : 'Trade goods need an export harbor (⚓) or the Merchant Prince'}
+                            onClick={() => setSell((s) => ({ ...s, trade: Math.min(me!.trade, s.trade + 1) }))}
+                          >
+                            <Ico kind="trade" title="trade goods" />
+                            <b>{sell.trade}</b>
+                            <span className="sell-have">/{me!.trade}</span>
                           </button>
-                          <b style={{ margin: '0 4px' }}>{sell.trade}</b>
-                          <button className="small ghost" style={{ padding: '0 5px' }} onClick={() => setSell((s) => ({ ...s, trade: Math.min(me!.trade, s.trade + 1) }))}>
-                            +
+                          <button
+                            className="sell-sub"
+                            disabled={sell.trade === 0}
+                            title="Remove 1 trade good"
+                            onClick={() => setSell((s) => ({ ...s, trade: Math.max(0, s.trade - 1) }))}
+                          >
+                            −
                           </button>
                         </span>
                         <button
                           className="ghost"
-                          disabled={sellTotal === 0 && sell.trade === 0}
-                          onClick={() => {
-                            send({
-                              type: 'sellResources',
-                              resources: { iron: sell.iron, wood: sell.wood, food: sell.food },
-                              trade: sell.trade,
-                            })
-                            setSell({ iron: 0, wood: 0, food: 0, trade: 0 })
-                          }}
+                          disabled={(sellTotal === 0 && sell.trade === 0) || !sellPairsValid}
+                          title={!sellPairsValid ? `Resources sell in groups of ${sellRate}` : 'Sell the chosen goods'}
+                          onClick={() => submitSell(sell)}
                         >
-                          {sellGain > 0 ? <>Sell → +{sellGain} <Ico kind="coin" title="coins"/></> : 'Sell'}
+                          {!sellPairsValid ? `Sell · groups of ${sellRate}` : sellGain > 0 ? <>Sell → +{sellGain} <Ico kind="coin" title="coins" /></> : 'Sell'}
+                        </button>
+                        <button
+                          className="ghost"
+                          disabled={spareGain === 0}
+                          title="Sell every spare good in one trade (whole groups only)"
+                          onClick={() => submitSell(spareSelection)}
+                        >
+                          Sell all → +{spareGain} <Ico kind="coin" title="coins" />
                         </button>
                         <span className="hint">
                           {me!.personality === 'merchant_prince'
@@ -477,7 +527,7 @@ export function Game(props: {
                               disabled={me!.coins < state.config.armyCardCost}
                               onClick={() => send({ type: 'buyArmyCard', armyId: aid })}
                             >
-                              Reinforce Army {aid === 1 ? 'I' : 'II'} — +1 card · {state.config.armyCardCost} <Ico kind="coin" title="coins"/>
+                              Reinforce {aid === 1 ? 'I' : 'II'} · {state.config.armyCardCost} <Ico kind="coin" title="coins"/>
                             </button>
                             <button
                               className="ghost"
@@ -485,11 +535,11 @@ export function Game(props: {
                               disabled={me!.iron < 2 || me!.coins < 1}
                               onClick={() => send({ type: 'buyArmyCard', armyId: aid, forge: true })}
                             >
-                              Forge Army {aid === 1 ? 'I' : 'II'} · 2 iron + 1 <Ico kind="coin" title="coins"/>
+                              Forge {aid === 1 ? 'I' : 'II'} · 2⛏ + 1 <Ico kind="coin" title="coins"/>
                             </button>
                           </span>
                         ))}
-                        <button className="primary" onClick={() => send({ type: 'endResource' })}>
+                        <button className="primary to-actions" onClick={() => send({ type: 'endResource' })}>
                           To Actions →
                         </button>
                       </div>
@@ -773,6 +823,9 @@ export function Game(props: {
           }}
           onLeave={onLeave}
         />
+      )}
+      {showResourceReveal && state.lastResourceCard && (
+        <ResourceRevealModal card={state.lastResourceCard} onClose={() => setSeenCard(cardKey)} />
       )}
       {showHelp && <RulesGuide onClose={() => setShowHelp(false)} />}
       {conquerRegion && (

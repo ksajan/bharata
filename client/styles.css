@@ -295,6 +295,37 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55); animation: rise-in 0.22s ease;
 }
 
+/* selling */
+.sell-row { gap: 6px; }
+.sell-pill {
+  display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 8px;
+  border: 1px solid #5a4a30; border-radius: 999px; background: #0e0a06;
+}
+.sell-add {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px; border: none; background: none;
+  color: #f0e6cf; font-size: 13.5px;
+}
+.sell-add:hover:not(:disabled) { background: none; border: none; color: var(--gold-bright); }
+.sell-add .sell-have { color: #95876a; font-size: 12px; }
+.sell-sub { padding: 0 7px; border-radius: 999px; font-size: 14px; line-height: 1.45; }
+.to-actions { margin-left: auto; }
+
+/* resource reveal */
+.resource-reveal { width: min(480px, 100%); text-align: center; }
+.rr-kicker { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #7a5a1c; font-weight: 700; }
+.rr-card {
+  margin: 14px 0 6px; padding: 22px 20px; border-radius: 12px; border: 1.5px solid #8a6a30;
+  background: linear-gradient(165deg, #fffaf0, #efdcb4); box-shadow: inset 0 0 40px rgba(123, 45, 38, 0.08);
+}
+.rr-title { font-family: var(--font-display); font-size: 30px; color: var(--maroon); }
+.rr-text { font-size: 16px; color: var(--ink-soft); font-style: italic; margin: 6px 0 12px; }
+.rr-grants { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+.rr-label { display: block; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #95876a; }
+.grant-chip {
+  display: inline-block; margin: 3px 3px 0; padding: 2px 9px; border-radius: 999px;
+  border: 1px solid #b98a2f; background: #fff6df; font-weight: 700; font-size: 14px; color: var(--ink);
+}
+
 /* region inspector: summary + always-visible orders, costs tucked into details */
 .region-title {
   display: flex; align-items: baseline; gap: 8px; font-family: var(--font-display); font-size: 17px; color: #f0e6cf;

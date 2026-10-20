@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { dismissReveal } from './helpers'
 
 /**
  * Regression: neutral regions must offer the Conquer order.
@@ -32,7 +33,8 @@ test('a neutral region with an army offers Conquer', async ({ page }) => {
   await draftAll(page)
 
   await page.getByText('Step 1 — Draw Resource Card').click()
-  await page.getByText('To Actions →').click()
+  await dismissReveal(page)
+  await page.locator('.controls').getByRole('button', { name: 'To Actions →' }).click()
   await page.waitForTimeout(300)
 
   await page.locator('.army-box').first().click()
