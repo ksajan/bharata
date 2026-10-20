@@ -479,9 +479,15 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   .board-controls { top: 6px; right: 6px; transform: scale(0.92); transform-origin: top right; }
   .board-stage.is-focus .board-controls { right: 10px; top: 10px; }
   .game.focus-board .board-stage .board-controls { transform: none; }
-  .topbar { padding: 6px 10px; }
+  .topbar { padding: 6px 10px; gap: 6px 10px; }
+  .topbar .logo { display: none; }
+  .topbar .vp-target { display: none; }
+  .topbar .turn-banner { order: 10; flex-basis: 100%; white-space: normal; text-align: left; font-size: 14px; }
   .topbar .pill { font-size: 12px; padding: 3px 9px; }
+  .topbar button.small { padding: 3px 8px; font-size: 12px; }
   .phase-step { font-size: 11px; padding: 2px 7px; }
+  .player-card { font-size: 13px; }
+  .player-card .pc-armies, .player-card .pc-traits { display: none; }
   .board-frame .region-sub { display: none; }
 }
 

@@ -189,7 +189,7 @@ export function Game(props: {
           ))}
         </div>
         <div className="turn-banner">{bannerText}</div>
-        <div className="pill">First to {state.config.vpTarget} VP</div>
+        <div className="pill vp-target">First to {state.config.vpTarget} VP</div>
         <button className="small ghost" onClick={() => setShowHelp(true)}>
           Rules
         </button>
