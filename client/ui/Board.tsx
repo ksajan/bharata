@@ -15,8 +15,9 @@ export const Board = React.memo(function Board(props: {
   onRegion: (rid: string) => void
   focusMode?: boolean
   onToggleFocus?: () => void
+  onClearSelection?: () => void
 }) {
-  const { state, selectedRegion, moveTargets, evtTargets, onRegion, focusMode, onToggleFocus } = props
+  const { state, selectedRegion, moveTargets, evtTargets, onRegion, focusMode, onToggleFocus, onClearSelection } = props
 
   if (import.meta.env.DEV) {
     const w = window as unknown as { __boardRenders?: number }
@@ -40,6 +41,7 @@ export const Board = React.memo(function Board(props: {
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const drag = useRef<{ startX: number; startY: number; box: Box; moved: boolean; pinchDist: number } | null>(null)
   const suppressClick = useRef(false)
+  const [kbdRid, setKbdRid] = useState<string | null>(null)
   const boxRef = useRef(box)
   boxRef.current = box
 
@@ -152,6 +154,57 @@ export const Board = React.memo(function Board(props: {
 
   const seatColor = (seatId: string) => state.seats[seatId]?.color ?? '#888'
   const zoomed = zoomPct > 110
+
+  // ----- keyboard navigation: arrows walk the hex lattice -----
+  const stepRegion = (from: string, key: string) => {
+    const dirs: Record<string, [number, number]> = {
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+    }
+    const dir = dirs[key]
+    if (!dir) return from
+    const origin = hexCenter(REGIONS[from].pos.q, REGIONS[from].pos.r)
+    let best: string | null = null
+    let bestScore = 0
+    for (const n of REGIONS[from].neighbors) {
+      const c = hexCenter(REGIONS[n].pos.q, REGIONS[n].pos.r)
+      const dx = c.x - origin.x
+      const dy = c.y - origin.y
+      const len = Math.hypot(dx, dy) || 1
+      const score = (dx * dir[0] + dy * dir[1]) / len
+      if (score > bestScore) {
+        bestScore = score
+        best = n
+      }
+    }
+    return best ?? from
+  }
+
+  const startRegion = selectedRegion ?? Object.values(state.kingdoms)[0]?.capital ?? Object.keys(REGIONS)[0]
+  const focusedRegion = kbdRid ? REGIONS[kbdRid] : null
+  const focusedOwner = kbdRid ? state.regionControl[kbdRid] : null
+  const focusAnnouncement = focusedRegion
+    ? `${focusedRegion.name}. ${focusedRegion.kind === 'province' ? 'Province' : 'Great Kingdom'}. Value ${focusedRegion.value}. ${
+        focusedOwner ? `Ruled by ${state.kingdoms[focusedOwner]?.name}` : 'Unclaimed'
+      }.`
+    : ''
+
+  const onBoardKeyDown = (e: React.KeyboardEvent<SVGSVGElement>) => {
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Escape'].includes(e.key)) return
+    e.preventDefault()
+    if (e.key === 'Escape') {
+      setKbdRid(null)
+      onClearSelection?.()
+      return
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (kbdRid) handleRegion(kbdRid)
+      return
+    }
+    setKbdRid((cur) => stepRegion(cur ?? startRegion, e.key))
+  }
   // keep the decorative frame aligned with the map bounds
   const minX = fit.x
   const minY = fit.y
@@ -160,6 +213,7 @@ export const Board = React.memo(function Board(props: {
 
   return (
     <div className={`board-stage ${zoomed ? 'is-zoomed' : ''} ${focusMode ? 'is-focus' : ''}`}>
+      <div className="sr-only" aria-live="polite">{focusAnnouncement}</div>
       <div className="board-controls" role="group" aria-label="Map controls">
         <button className="small" onClick={() => zoomTo(1 / 1.35)} disabled={zoomPct <= 100} aria-label="Zoom out">
           −
@@ -186,8 +240,11 @@ export const Board = React.memo(function Board(props: {
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
         onPointerCancel={endPointer}
-        role="img"
-        aria-label="Map of Bharata"
+        tabIndex={0}
+        role="application"
+        aria-label="Map of Bharata. Use the arrow keys to move between regions, Enter to select, Escape to clear."
+        onKeyDown={onBoardKeyDown}
+        onFocus={() => setKbdRid((cur) => cur ?? startRegion)}
       >
       <defs>
         <radialGradient id="sea" cx="50%" cy="40%" r="75%">
@@ -300,8 +357,14 @@ export const Board = React.memo(function Board(props: {
         return (
           <g
             key={region.id}
-            className={`region ${region.kind === 'mahajanapada' ? 'maha' : ''} ${isSel ? 'selected' : ''} ${canMove ? 'moveable' : ''}`}
+            className={`region ${region.kind === 'mahajanapada' ? 'maha' : ''} ${isSel ? 'selected' : ''} ${canMove ? 'moveable' : ''} ${kbdRid === region.id ? 'kbd-focus' : ''}`}
             onClick={() => handleRegion(region.id)}
+            role="button"
+            tabIndex={-1}
+            aria-pressed={isSel}
+            aria-label={`${region.name}, value ${region.value}, ${ownerKingdom?.name ?? 'unclaimed'}${
+              armies.length ? `, ${armies.length} arm${armies.length === 1 ? 'y' : 'ies'}` : ''
+            }`}
           >
             <polygon
               className="region-shape"

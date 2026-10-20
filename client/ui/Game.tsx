@@ -127,6 +127,7 @@ export function Game(props: {
 
   // end turn asks once when actions remain, so a stray click cannot forfeit them
   const toggleFocus = useCallback(() => setFocusBoard((f) => !f), [])
+  const clearSelection = useCallback(() => setSelectedRegion(null), [])
 
   const requestEndTurn = useCallback(() => {
     if (state.actionsLeft > 0 && !confirmEnd) {
@@ -278,6 +279,9 @@ export function Game(props: {
 
   return (
     <div className={`game ${focusBoard ? 'focus-board' : ''}`}>
+      <a className="skip-link" href="#game-controls">
+        Skip to controls
+      </a>
       {/* ---------- top bar ---------- */}
       <div className="topbar">
         <div className="logo">भारत · BHARATA</div>
@@ -290,7 +294,7 @@ export function Game(props: {
             </div>
           ))}
         </div>
-        <div className="turn-banner">{bannerText}</div>
+        <div className="turn-banner" aria-live="polite">{bannerText}</div>
         <div className="pill vp-target">First to {state.config.vpTarget} VP</div>
         <button className="small ghost" onClick={() => setShowHelp(true)}>
           Rules
@@ -361,6 +365,7 @@ export function Game(props: {
               onRegion={onRegion}
               focusMode={focusBoard}
               onToggleFocus={toggleFocus}
+              onClearSelection={clearSelection}
             />
           </div>
         </div>
@@ -489,7 +494,7 @@ export function Game(props: {
               )}
             </div>
             {logOpen && (
-              <div className="log-feed">
+              <div className="log-feed" role="log" aria-live="polite" aria-relevant="additions">
                 {[...state.log]
                   .reverse()
                   .filter((l) => logFilter === 'all' || l.kind === logFilter)
@@ -505,7 +510,7 @@ export function Game(props: {
       </div>
 
       {/* ---------- bottom controls ---------- */}
-      <div className="controls">
+      <div className="controls" id="game-controls">
         {/* phase column */}
         <div className="col main">
           <h4>{state.phase === 'resource' ? 'Resource Phase' : state.phase === 'action' ? 'Action Phase' : state.phase === 'draft' ? 'Drafting' : 'Events'}</h4>
@@ -718,9 +723,11 @@ export function Game(props: {
                       const army = myArmies.find((a) => a.armyId === aid)
                       if (!army) return null
                       return (
-                        <div
+                        <button
                           key={aid}
+                          type="button"
                           className={`army-box ${selectedArmy === aid ? 'selected' : ''}`}
+                          aria-pressed={selectedArmy === aid}
                           onClick={() => army.alive && setSelectedArmy(selectedArmy === aid ? null : aid)}
                           title="Each army is a separate battle hand. Select one, then click a highlighted region to march."
                         >
@@ -746,7 +753,7 @@ export function Game(props: {
                               </span>
                             ))}
                           </div>
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
