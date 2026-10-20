@@ -262,7 +262,7 @@ function MenuScreen(props: {
             browser, with reconnects and seat reclaim.
           </button>
         </div>
-        <div className="menu-form online-row">
+        <div className="menu-form">
           <span className="join-label">Your name in the court:</span>
           <input
             placeholder="e.g. Bimbisara"
@@ -270,16 +270,18 @@ function MenuScreen(props: {
             onChange={(e) => props.setName(e.target.value)}
           />
         </div>
-        <div className="menu-form online-row">
-          <button className="ghost" onClick={props.onOnlineCreate} style={{ flex: 1 }}>
+        <div className="menu-form">
+          <button className="ghost" style={{ flex: 1 }} onClick={props.onOnlineCreate}>
             Host Online Room
           </button>
+        </div>
+        <div className="menu-form join-row">
           <span className="join-label">Joining a friend? Enter their code:</span>
           <input
+            className="code-input"
             placeholder="CODE"
             value={props.joinCode}
             maxLength={5}
-            style={{ width: 110, textTransform: 'uppercase' }}
             onChange={(e) => props.setJoinCode(e.target.value.toUpperCase())}
           />
           <button className="primary" onClick={props.onOnlineJoin} disabled={props.joinCode.length < 4}>
