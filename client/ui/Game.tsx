@@ -6,6 +6,7 @@ import { Board } from './Board'
 import { RulesGuide } from './RulesGuideLazy'
 import { Ico } from './icons'
 import { KingdomCrest, VpTrack } from './art'
+import { diffStates, type GameFx } from './fx'
 import {
   BattleCommitModal,
   BattleRevealModal,
@@ -37,6 +38,8 @@ export function Game(props: {
   const [confirmEnd, setConfirmEnd] = useState(false)
   const [turnToast, setTurnToast] = useState<string | null>(null)
   const [seenCard, setSeenCard] = useState<string | null>(null)
+  const [fx, setFx] = useState<GameFx | null>(null)
+  const prevStateRef = useRef<GameState | null>(null)
   const [logOpen, setLogOpen] = useState(true)
   const [logFilter, setLogFilter] = useState<'all' | 'battle' | 'event'>('all')
   const [unread, setUnread] = useState(0)
@@ -138,6 +141,21 @@ export function Game(props: {
     setConfirmEnd(false)
     send({ type: 'endTurn' })
   }, [state.actionsLeft, confirmEnd, send])
+
+  // derive short-lived visual cues from real state transitions
+  useEffect(() => {
+    const prev = prevStateRef.current
+    prevStateRef.current = state
+    if (!prev) return
+    const nextFx = diffStates(prev, state)
+    if (nextFx) setFx(nextFx)
+  }, [state])
+
+  useEffect(() => {
+    if (!fx) return
+    const t = setTimeout(() => setFx(null), 1900)
+    return () => clearTimeout(t)
+  }, [fx])
 
   // chronicle unread count while collapsed
   const prevLogLen = useRef(state.log.length)
@@ -255,6 +273,7 @@ export function Game(props: {
               ? `${activeSeat?.name} must place the omen`
               : `Turn — ${activeSeat?.name} of ${activeKingdom?.name} (${state.actionsLeft} action${state.actionsLeft === 1 ? '' : 's'} left)`
   const needsHandoff = hotseat && !!mySeatId && ackedSeat !== mySeatId
+  const offlineSeats = hotseat ? [] : Object.values(state.seats).filter((s) => !s.connected)
 
   // exactly one recommended action for the current state — the coach strip
   const nextStep: { text: string; action?: { label: string; run: () => void } } | null = (() => {
@@ -272,8 +291,8 @@ export function Game(props: {
     if (state.phase === 'event') return { text: 'Place the omen in a legal region — or skip if none is valid.' }
     if (state.phase === 'action') {
       if (state.actionsLeft <= 0) return { text: 'No actions left — close out the turn.', action: { label: 'End turn →', run: requestEndTurn } }
-      if (!selectedArmyObj) return { text: 'Select an army below, then click a dashed neighbour to march.' }
-      return { text: 'Click a dashed neighbouring region to march, or inspect a region for orders.' }
+      if (!selectedArmyObj) return { text: 'Select an army below, then click a gold-lit neighbour to march.' }
+      return { text: 'Click a gold-lit neighbouring region to march, or inspect a region for orders.' }
     }
     return null
   })()
@@ -314,6 +333,11 @@ export function Game(props: {
       </div>
 
       {turnToast && <div className="turn-toast" role="status">{turnToast}</div>}
+      {offlineSeats.length > 0 && (
+        <div className="offline-banner" role="status">
+          ⌁ {offlineSeats.map((s) => s.name).join(', ')} disconnected — their court auto-plays until they return.
+        </div>
+      )}
 
       <div className="game-main">
         {/* ---------- board ---------- */}
@@ -367,8 +391,32 @@ export function Game(props: {
               focusMode={focusBoard}
               onToggleFocus={toggleFocus}
               onClearSelection={clearSelection}
+              fx={fx}
             />
           </div>
+          {fx && Object.keys(fx.deltas).length > 0 && (
+            <div className={`fx-ledger ${hotseat ? 'hotseat' : ''}`} role="status">
+              {Object.entries(fx.deltas).map(([seatId, delta]) => {
+                const seat = state.seats[seatId]
+                if (!seat) return null
+                const fmt = (n: number) => (n > 0 ? `+${n}` : `${n}`)
+                return (
+                  <div key={seatId} className="fx-ledger-row">
+                    <span className="fx-ledger-dot" style={{ background: seat.color }} />
+                    <b>{seat.name}</b>
+                    {delta.vp ? <span className="fx-chip fx-vp">{fmt(delta.vp)} VP</span> : null}
+                    {(['coins', 'iron', 'wood', 'food', 'trade', 'medicine'] as const).map((key) =>
+                      delta[key] ? (
+                        <span key={key} className="fx-chip">
+                          {fmt(delta[key]!)} <Ico kind={key === 'coins' ? 'coin' : key} title={key} />
+                        </span>
+                      ) : null,
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* ---------- sidebar ---------- */}
@@ -397,21 +445,25 @@ export function Game(props: {
             </div>
           </details>
           <div className="players-list">
-            {Object.values(state.seats).map((s) => {
+            {Object.values(state.seats).map((s, seatIndex) => {
               const k = state.kingdoms[s.kingdomId]
               const forts = Object.values(k.forts).filter((x) => x === k.id).length
               const active = s.id === state.activeSeat
               const armies = state.armies.filter((a) => a.ownerId === s.id)
               const compact = Object.keys(state.seats).length > 4 && !active
+              const delta = fx?.deltas[s.id] ?? {}
               return (
                 <div key={s.id} className={`player-card ${active ? 'active' : ''} ${compact ? 'compact' : ''}`}>
                   <div className="pc-head">
+                    <span className="pc-order" title={`Turn order ${seatIndex + 1}`}>
+                      {seatIndex + 1}
+                    </span>
                     <KingdomCrest seed={s.kingdomId} label={k.name} size={15} color={s.color} />
                     <span className="pc-name">{s.name}</span>
                     {active && <span className="pc-playing">playing</span>}
                     {!s.connected && (
                       <span className="pc-off" title="reconnecting">
-                        ⌁
+                        ⌁{compact ? '' : ' reconnecting'}
                       </span>
                     )}
                     <span className="pc-vp">
@@ -427,15 +479,15 @@ export function Game(props: {
                   {!compact && (
                     <>
                       <div className="pc-stats">
-                        <span title={`${s.coins} coins`}><Ico kind="coin" title="coins" /> {s.coins}</span>
-                        <span title={`${s.iron} iron`}><Ico kind="iron" title="iron" /> {s.iron}</span>
-                        <span title={`${s.wood} wood`}><Ico kind="wood" title="wood" /> {s.wood}</span>
-                        <span title={`${s.food} food`}><Ico kind="food" title="food" /> {s.food}</span>
-                        <span title={`${s.trade} trade goods`}><Ico kind="trade" title="trade" /> {s.trade}</span>
+                        <span className="pc-stat" title={`${s.coins} coins`}><Ico kind="coin" title="coins" /> <b>{s.coins}</b></span>
+                        <span className="pc-stat" title={`${s.iron} iron`}><Ico kind="iron" title="iron" /> <b>{s.iron}</b></span>
+                        <span className="pc-stat" title={`${s.wood} wood`}><Ico kind="wood" title="wood" /> <b>{s.wood}</b></span>
+                        <span className="pc-stat" title={`${s.food} food`}><Ico kind="food" title="food" /> <b>{s.food}</b></span>
+                        <span className="pc-stat" title={`${s.trade} trade goods`}><Ico kind="trade" title="trade" /> <b>{s.trade}</b></span>
                         {state.config.advanced && (
-                          <span title={`${s.medicine} medicine`}><Ico kind="medicine" title="medicine" /> {s.medicine}</span>
+                          <span className="pc-stat" title={`${s.medicine} medicine`}><Ico kind="medicine" title="medicine" /> <b>{s.medicine}</b></span>
                         )}
-                        <span title={`${s.winsBattles} battles won`}><Ico kind="sword" title="battles won" /> {s.winsBattles}</span>
+                        <span className="pc-stat" title={`${s.winsBattles} battles won`}><Ico kind="sword" title="battles won" /> <b>{s.winsBattles}</b></span>
                       </div>
                       <div className="pc-armies">
                         {armies.map((a) => {
@@ -468,6 +520,12 @@ export function Game(props: {
                         </div>
                       )}
                     </>
+                  )}
+                  {compact && (
+                    <span
+                      className="pc-mini"
+                      style={{ width: `${Math.min(100, (s.vp / state.config.vpTarget) * 100)}%`, background: s.color }}
+                    />
                   )}
                 </div>
               )

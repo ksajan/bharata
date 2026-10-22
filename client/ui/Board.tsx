@@ -3,6 +3,7 @@ import { HEX_SIZE, REGIONS, RIVER_PATHS, hexCenter, hexPolygon } from '../../sha
 import type { GameState } from '../../shared/types'
 import { EVENT_GLYPHS, ICON_SHAPES, type IconKind } from './icons'
 import { Pawn, Ship, TerrainMotif, type TerrainKind } from './art'
+import type { GameFx } from './fx'
 
 type Box = { x: number; y: number; w: number; h: number }
 
@@ -17,8 +18,9 @@ export const Board = React.memo(function Board(props: {
   focusMode?: boolean
   onToggleFocus?: () => void
   onClearSelection?: () => void
+  fx?: GameFx | null
 }) {
-  const { state, selectedRegion, moveTargets, evtTargets, onRegion, focusMode, onToggleFocus, onClearSelection } = props
+  const { state, selectedRegion, moveTargets, evtTargets, onRegion, focusMode, onToggleFocus, onClearSelection, fx } = props
 
   if (import.meta.env.DEV) {
     const w = window as unknown as { __boardRenders?: number }
@@ -395,6 +397,9 @@ export const Board = React.memo(function Board(props: {
               armies.length ? `, ${armies.length} arm${armies.length === 1 ? 'y' : 'ies'}` : ''
             }`}
           >
+            <title>{`${region.name} — value ${region.value}, ${ownerKingdom?.name ?? 'unclaimed'}${
+              yieldEntries.length ? `; ${yieldEntries.map(([k, n]) => `${n} ${k}`).join(', ')}` : ''
+            }${armies.length ? `; ${armies.length} arm${armies.length === 1 ? 'y' : 'ies'}` : ''}`}</title>
             <polygon
               className="region-shape"
               points={poly.map((p) => p.join(',')).join(' ')}
@@ -420,6 +425,15 @@ export const Board = React.memo(function Board(props: {
                 stroke={ownerKingdom.color}
                 strokeWidth={2.6}
                 strokeOpacity={0.85}
+                pointerEvents="none"
+              />
+            )}
+            {canMove && (
+              <polygon
+                className="move-overlay"
+                points={poly.map((p) => p.join(',')).join(' ')}
+                fill="#ffe9b8"
+                fillOpacity={0.16}
                 pointerEvents="none"
               />
             )}
@@ -535,6 +549,71 @@ export const Board = React.memo(function Board(props: {
         )
       })}
 
+      {fx && (
+        <g pointerEvents="none">
+          {fx.moves.map((m) => {
+            const from = REGIONS[m.from]
+            const to = REGIONS[m.to]
+            if (!from || !to) return null
+            const a = hexCenter(from.pos.q, from.pos.r)
+            const b = hexCenter(to.pos.q, to.pos.r)
+            return (
+              <g key={m.id}>
+                <line
+                  className="fx-trail"
+                  x1={a.x}
+                  y1={a.y}
+                  x2={b.x}
+                  y2={b.y}
+                  stroke={m.color}
+                  strokeWidth={2.4}
+                  strokeDasharray="5 7"
+                  strokeLinecap="round"
+                />
+                <circle className="fx-ripple" cx={b.x} cy={b.y} r={9} fill="none" stroke="#fff3d6" strokeWidth={2.4} />
+              </g>
+            )
+          })}
+          {fx.tiles.map((t) => {
+            const region = REGIONS[t.regionId]
+            if (!region) return null
+            const c = hexCenter(region.pos.q, region.pos.r)
+            const poly = hexPolygon(region.pos.q, region.pos.r)
+            if (t.kind === 'conquest') {
+              return (
+                <g key={t.id}>
+                  <polygon
+                    className="fx-conquest"
+                    points={poly.map((p) => p.join(',')).join(' ')}
+                    fill={t.color}
+                  />
+                  <circle
+                    className="fx-ring"
+                    cx={c.x}
+                    cy={c.y}
+                    r={HEX_SIZE * 0.55}
+                    fill="none"
+                    stroke={t.color}
+                    strokeWidth={2.6}
+                  />
+                </g>
+              )
+            }
+            return (
+              <circle
+                key={t.id}
+                className="fx-ring"
+                cx={c.x}
+                cy={c.y}
+                r={HEX_SIZE * 0.42}
+                fill="none"
+                stroke={t.color}
+                strokeWidth={3}
+              />
+            )
+          })}
+        </g>
+      )}
       </svg>
     </div>
   )
