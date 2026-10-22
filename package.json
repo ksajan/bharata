@@ -17,7 +17,8 @@
     "e2e": "tsx scripts/e2e-socket.ts",
     "test:ui": "playwright test --config e2e/playwright.config.ts",
     "typecheck": "tsc --noEmit",
-    "perf": "node scripts/perf.mjs"
+    "perf": "node scripts/perf.mjs",
+    "artifacts": "tsx scripts/artifacts.ts"
   },
   "dependencies": {
     "express": "^4.19.2",

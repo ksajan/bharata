@@ -364,6 +364,9 @@ function MenuScreen(props: {
         <div className="lobby-note">
           New here? Press <b>❖ How to play</b> — then start with Same Screen and the Quick preset.
         </div>
+        <div className="menu-credit">
+          A web adaptation inspired by <b>Bharata 600 BC</b> · GoIndia Games
+        </div>
       </div>
     </div>
   )
@@ -485,7 +488,7 @@ export function ConfigEditor(props: { cfg: Partial<GameConfig>; onChange: (c: Pa
           Ruleset
           <select value={cfg.advanced ? 'adv' : 'basic'} onChange={(e) => set('advanced', e.target.value === 'adv')}>
             <option value="basic">Basic — fast & simple</option>
-            <option value="adv">Advanced — full game (recommended)</option>
+            <option value="adv">Advanced — full game</option>
           </select>
           <span className="cfg-desc">Basic: economy & conquest only. Advanced: adds disasters, ruler abilities and hidden treasure.</span>
         </label>
@@ -616,7 +619,7 @@ function LobbyScreen(props: { transport: Transport; room: LobbySnapshot; error: 
               disabled={room.players.length < 2}
               onClick={() => transport.start().catch(() => {})}
             >
-              Sound the Conch — Start ⚔
+              Sound the Conch — Start
             </button>
           )}
         </div>

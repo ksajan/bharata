@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { ABILITIES, CONDITIONS, EVENT_CARDS, HIDDEN_TOKEN_LABEL, PERSONALITIES, REGIONS } from '../../shared/data'
 import type { AbilityId, GameState, PersonalityId, ResourceCardDef } from '../../shared/types'
 import type { Transport } from '../transport'
+import { Ico, type IconKind } from './icons'
 
 // ---------------------------------------------------------------------------
 // Resource reveal
@@ -27,6 +28,7 @@ export function ResourceRevealModal(props: { card: ResourceCardDef; onClose: () 
       <div className="modal resource-reveal" role="dialog" aria-modal="true" aria-label={`Resource card: ${card.title}`}>
         <div className="rr-kicker">Resource phase · the land speaks</div>
         <div className="rr-card">
+          <div className="rr-seal" aria-hidden>भा</div>
           <div className="rr-title">{card.title}</div>
           <p className="rr-text">{card.text}</p>
           <div className="rr-grants">
@@ -58,6 +60,15 @@ export function ResourceRevealModal(props: { card: ResourceCardDef; onClose: () 
 // Draft
 // ---------------------------------------------------------------------------
 
+const PERSONALITY_GLYPH: Record<string, IconKind> = {
+  merchant_prince: 'trade',
+  iron_raja: 'iron',
+  granary_keeper: 'food',
+  war_elephants: 'sword',
+  master_mason: 'iron',
+  tax_collector: 'coin',
+}
+
 export function DraftModal(props: { state: GameState; seatId: string; onSubmit: (p: PersonalityId, ab: AbilityId[]) => void }) {
   const { state, seatId } = props
   const [personality, setPersonality] = useState<PersonalityId | null>(null)
@@ -73,17 +84,21 @@ export function DraftModal(props: { state: GameState; seatId: string; onSubmit: 
 
   return (
     <div className="modal-backdrop">
-      <div className="modal">
-        <h2>Shape your Ruler</h2>
-        <div className="sub">
-          {seat.name}, ruler of the Kingdom of {state.kingdoms[seat.kingdomId].name} — choose a personality
-          {state.config.advanced ? ' and two abilities (each usable twice per game).' : '.'}
-        </div>
+      <div className="modal draft-modal">
+        <div className="draft-body">
+          <h2>Shape your Ruler</h2>
+          <div className="sub">
+            {seat.name}, ruler of the Kingdom of {state.kingdoms[seat.kingdomId].name} — choose a personality
+            {state.config.advanced ? ' and two abilities (each usable twice per game).' : '.'}
+          </div>
 
         <div className="section-title">Personality</div>
         <div className="draft-grid">
           {Object.values(PERSONALITIES).map((p) => (
             <button key={p.id} className={`draft-item ${personality === p.id ? 'selected' : ''}`} onClick={() => setPersonality(p.id)}>
+              <span className="draft-emblem" aria-hidden>
+                <Ico kind={PERSONALITY_GLYPH[p.id] ?? 'star'} size={22} />
+              </span>
               <b>{p.name}</b>
               <br />
               {p.desc}
@@ -111,13 +126,14 @@ export function DraftModal(props: { state: GameState; seatId: string; onSubmit: 
           </>
         )}
 
-        {others.length > 0 && (
-          <div className="sub" style={{ marginTop: 14 }}>
-            Already sworn in: {others.map((s) => `${s.name} (${PERSONALITIES[s.personality!].name})`).join(', ')}
-          </div>
-        )}
+          {others.length > 0 && (
+            <div className="sub" style={{ marginTop: 14 }}>
+              Already sworn in: {others.map((s) => `${s.name} (${PERSONALITIES[s.personality!].name})`).join(', ')}
+            </div>
+          )}
+        </div>
 
-        <div className="btn-row">
+        <div className="btn-row draft-footer">
           <button className="primary" disabled={!canSubmit} onClick={() => personality && props.onSubmit(personality, abilities)}>
             Take the Throne
           </button>
@@ -195,6 +211,9 @@ export function BattleCommitModal(props: {
                   className={`bcard ${picked.includes(c.id) ? 'picked' : ''}`}
                   onClick={() => toggle(army.armyId, c.id)}
                 >
+                  <span className="bcard-mark" aria-hidden>
+                    <Ico kind="sword" size={24} />
+                  </span>
                   {c.value}
                   <small>commit</small>
                 </div>

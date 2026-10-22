@@ -61,6 +61,10 @@ async function main() {
   if (await take.isVisible().catch(() => false)) await take.click()
   await page.waitForTimeout(300)
 
+  // measure interaction cost from here — first paint/font work is a separate budget
+  await page.evaluate(() => {
+    window.__longTasks = []
+  })
   const base = await page.evaluate(() => window.__boardRenders ?? 0)
 
   // local-only state changes: selling steppers must not touch the board
@@ -81,7 +85,7 @@ async function main() {
   await browser.close()
 
   console.log(`· board renders: start ${base} · after 3 sells ${afterSell} · after selecting a region ${afterSelect}`)
-  console.log(`· long tasks: ${longTasks.length ? longTasks.join(', ') + ' ms' : 'none > 50ms'}`)
+  console.log(`· interaction long tasks: ${longTasks.length ? longTasks.join(', ') + ' ms' : 'none > 50ms'}`)
   console.log(`· DOM nodes ${nodes}, JS heap ${heap ?? '?'} MB`)
 
   let failed = false

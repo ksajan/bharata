@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HEX_SIZE, REGIONS, RIVER_PATHS, hexCenter, hexPolygon } from '../../shared/data'
 import type { GameState } from '../../shared/types'
 import { EVENT_GLYPHS, ICON_SHAPES, type IconKind } from './icons'
+import { Pawn, Ship, TerrainMotif, type TerrainKind } from './art'
 
 type Box = { x: number; y: number; w: number; h: number }
 
@@ -41,6 +42,7 @@ export const Board = React.memo(function Board(props: {
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const drag = useRef<{ startX: number; startY: number; box: Box; moved: boolean; pinchDist: number } | null>(null)
   const suppressClick = useRef(false)
+  const pointerFocus = useRef(false)
   const [kbdRid, setKbdRid] = useState<string | null>(null)
   const boxRef = useRef(box)
   boxRef.current = box
@@ -94,6 +96,8 @@ export const Board = React.memo(function Board(props: {
   }, [zoomTo])
 
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    pointerFocus.current = true
+    setKbdRid(null) // pointer use dismisses the keyboard ring
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (pointers.current.size === 1 && box.w < fit.w - 0.5) {
       drag.current = { startX: e.clientX, startY: e.clientY, box, moved: false, pinchDist: 0 }
@@ -139,6 +143,7 @@ export const Board = React.memo(function Board(props: {
   }
 
   const endPointer = (e: React.PointerEvent<SVGSVGElement>) => {
+    pointerFocus.current = false
     pointers.current.delete(e.pointerId)
     if (drag.current?.moved) suppressClick.current = true
     if (pointers.current.size < 2) drag.current = null
@@ -244,13 +249,16 @@ export const Board = React.memo(function Board(props: {
         role="application"
         aria-label="Map of Bharata. Use the arrow keys to move between regions, Enter to select, Escape to clear."
         onKeyDown={onBoardKeyDown}
-        onFocus={() => setKbdRid((cur) => cur ?? startRegion)}
+        onFocus={() => {
+          // keyboard and assistive-tech focus draw the ring; pointer focus does not
+          if (!pointerFocus.current) setKbdRid((cur) => cur ?? startRegion)
+        }}
       >
       <defs>
         <radialGradient id="sea" cx="50%" cy="40%" r="75%">
-          <stop offset="0%" stopColor="#d9c59a" />
-          <stop offset="78%" stopColor="#cdb684" />
-          <stop offset="100%" stopColor="#b99a63" />
+          <stop offset="0%" stopColor="#c9d5ce" />
+          <stop offset="78%" stopColor="#b0c1b8" />
+          <stop offset="100%" stopColor="#93a79d" />
         </radialGradient>
         {/* gentle ink-wash mottling for the land */}
         <filter id="inkWash" x="-20%" y="-20%" width="140%" height="140%">
@@ -266,8 +274,8 @@ export const Board = React.memo(function Board(props: {
           <stop offset="45%" stopColor="#fff" stopOpacity="0" />
         </radialGradient>
         <pattern id="waves" width="86" height="26" patternUnits="userSpaceOnUse">
-          <path d="M0,13 Q10.75,4 21.5,13 T43,13 T64.5,13 T86,13" fill="none" stroke="#8a6b3a" strokeOpacity="0.16" strokeWidth="1.6" />
-          <path d="M-6,22 Q4.5,14 15,22 T36,22 T57,22 T78,22 T99,22" fill="none" stroke="#8a6b3a" strokeOpacity="0.10" strokeWidth="1.2" />
+          <path d="M0,13 Q10.75,4 21.5,13 T43,13 T64.5,13 T86,13" fill="none" stroke="#7d9188" strokeOpacity="0.22" strokeWidth="1.6" />
+          <path d="M-6,22 Q4.5,14 15,22 T36,22 T57,22 T78,22 T99,22" fill="none" stroke="#7d9188" strokeOpacity="0.14" strokeWidth="1.2" />
         </pattern>
       </defs>
       <rect x={minX} y={minY} width={maxX - minX} height={maxY - minY} fill="url(#sea)" />
@@ -317,8 +325,13 @@ export const Board = React.memo(function Board(props: {
           उ
         </text>
       </g>
-      <text x={maxX - 30} y={maxY - 16} textAnchor="end" fontFamily="Cormorant Garamond, serif" fontStyle="italic" fontSize="18" fill="rgba(38,74,102,0.8)" letterSpacing="3">
-        MAHĀSĀGARA — the Great Ocean
+      <Ship x={minX + 205} y={maxY - 245} scale={1.05} />
+      <Ship x={maxX - 165} y={minY + 205} scale={0.85} flip />
+      <text x={minX + 150} y={maxY - 105} fontFamily="Cormorant Garamond, serif" fontSize={17} fill="rgba(38,74,102,0.7)" letterSpacing="7" transform={`rotate(-6 ${minX + 150} ${maxY - 105})`}>
+        ARABIAN SEA
+      </text>
+      <text x={maxX - 58} y={maxY - 150} textAnchor="end" fontFamily="Cormorant Garamond, serif" fontSize={17} fill="rgba(38,74,102,0.7)" letterSpacing="7" transform={`rotate(6 ${maxX - 58} ${maxY - 150})`}>
+        BAY OF BENGAL
       </text>
 
       {/* rivers — dark bed under a bright thread */}
@@ -354,6 +367,15 @@ export const Board = React.memo(function Board(props: {
         const canEvt = evtTargets.has(region.id)
         const yieldEntries = Object.entries(region.yields).filter(([, n]) => n) as [string, number][]
         const subLabel = region.isCapitalOf ?? ''
+        const terrain: TerrainKind | null = region.arid
+          ? 'dunes'
+          : (region.yields.iron ?? 0) > 0
+            ? 'hills'
+            : (region.yields.wood ?? 0) > 0
+              ? 'forest'
+              : (region.yields.food ?? 0) > 0
+                ? 'fields'
+                : null
         return (
           <g
             key={region.id}
@@ -369,7 +391,7 @@ export const Board = React.memo(function Board(props: {
             <polygon
               className="region-shape"
               points={poly.map((p) => p.join(',')).join(' ')}
-              fill={region.kind === 'mahajanapada' ? (region.arid ? '#d3b478' : '#c8a76b') : region.arid ? '#ddc48f' : '#d8c49c'}
+              fill={LAND_TINT[terrain ?? 'plain'][region.kind === 'mahajanapada' ? 1 : 0]}
             />
             {/* bevel: soft inner highlight ring gives the hex a raise */}
             <g transform={`translate(${c.x},${c.y}) scale(0.93) translate(${-c.x},${-c.y})`} pointerEvents="none">
@@ -384,12 +406,30 @@ export const Board = React.memo(function Board(props: {
                 pointerEvents="none"
               />
             )}
+            {ownerKingdom && (
+              <polygon
+                points={poly.map((p) => p.join(',')).join(' ')}
+                fill="none"
+                stroke={ownerKingdom.color}
+                strokeWidth={2.6}
+                strokeOpacity={0.85}
+                pointerEvents="none"
+              />
+            )}
             {canEvt && (
               <polygon points={poly.map((p) => p.join(',')).join(' ')} fill="#b03a2e" fillOpacity={0.3} stroke="#b03a2e" strokeWidth={3.5} pointerEvents="none" />
             )}
+            {terrain && (
+              <TerrainMotif
+                kind={terrain}
+                x={c.x + (q % 2 === 0 ? -15 : 15)}
+                y={c.y + (r % 2 === 0 ? 8 : -10)}
+                scale={0.9}
+              />
+            )}
 
             {/* value badge */}
-            <circle className="value-badge" cx={c.x} cy={c.y - HEX_SIZE + 22} r={11} fill="url(#badge)" />
+            <circle className="value-badge" cx={c.x} cy={c.y - HEX_SIZE + 22} r={11} />
             <text className="value-text" x={c.x} y={c.y - HEX_SIZE + 26.5} textAnchor="middle">
               {region.value}
             </text>
@@ -409,26 +449,17 @@ export const Board = React.memo(function Board(props: {
             {/* armies */}
             {armies.map((a, i) => {
               const total = armies.length
-              const spread = (i - (total - 1) / 2) * 27
+              const spread = (i - (total - 1) / 2) * 29
               const army = state.armies.find((x) => x.ownerId === a.seatId && x.armyId === a.armyId)
               const power = army ? army.cards.reduce((t, cc) => t + cc.value, 0) : 0
               return (
                 <g
                   key={a.armyRef}
                   className="army-glide"
-                  transform={`translate(${c.x + spread}, ${c.y + 2})`}
+                  transform={`translate(${c.x + spread}, ${c.y + 1})`}
                   pointerEvents="none"
                 >
-                  <ellipse cx={0} cy={9} rx={11} ry={3.2} fill="rgba(40, 24, 8, 0.4)" />
-                  <circle r={12.5} fill={seatColor(a.seatId)} stroke="#ffe9b8" strokeWidth={2.5} />
-                  <circle r={12.5} fill="url(#armyDisc)" pointerEvents="none" />
-                  <text x={0} y={-1} textAnchor="middle" fontSize={11} fontWeight={900} fill="#fff" fontFamily="Rozha One, serif">
-                    {a.armyId === 1 ? 'I' : 'II'}
-                  </text>
-                  {drawIcon('sword', -5.5, 6, 9)}
-                  <text x={3} y={10} textAnchor="middle" fontSize={8.5} fontWeight={700} fill="#ffe9b8" fontFamily="Cormorant Garamond, serif">
-                    {power}
-                  </text>
+                  <Pawn color={seatColor(a.seatId)} label={a.armyId === 1 ? 'I' : 'II'} power={power} scale={1.06} />
                 </g>
               )
             })}
@@ -464,7 +495,7 @@ export const Board = React.memo(function Board(props: {
               x={c.x}
               y={c.y + (hasArmies ? -18 : -2)}
               textAnchor="middle"
-              fontSize={region.kind === 'mahajanapada' ? 13 : 12}
+              fontSize={region.name.length > 10 ? (region.kind === 'mahajanapada' ? 11 : 10.4) : region.kind === 'mahajanapada' ? 13 : 12}
             >
               {region.name}
             </text>
@@ -503,6 +534,15 @@ export const Board = React.memo(function Board(props: {
 })
 
 const YIELD_ICON: Record<string, IconKind> = { iron: 'iron', wood: 'wood', food: 'food' }
+
+/** [province, Mahajanapada] fills — subtle painted-atlas land variety */
+const LAND_TINT: Record<string, [string, string]> = {
+  plain: ['#d8c49c', '#c8a76b'],
+  forest: ['#cfc48d', '#bfae72'],
+  hills: ['#d4bc8d', '#c4a877'],
+  fields: ['#dcc996', '#ccb57a'],
+  dunes: ['#e3ca93', '#d2b57a'],
+}
 
 function drawIcon(kind: IconKind, x: number, y: number, size = 11) {
   const scale = size / 16
