@@ -1,14 +1,58 @@
 # भारत · BHARATA 600 BC — Online
 
-A faithful web adaptation of **Bharata 600 BC** (GoIndia Games) — the strategy board game of the
-16 Mahajanapadas. Rule a kingdom of ancient Bharata: draw the resources of the land, coin them into
-armies, conquer provinces and Great Kingdoms, defend your forts against rivals, disasters and riots —
-and be the first to the victory target.
+![The painted board of Bharata, fully zoomed out](docs/screenshots/focus.webp)
 
-Supports **2–8 rulers** (2–4 solo kingdoms, 5–8 as co-ruled kingdoms), in two modes:
+A faithful browser adaptation of **Bharata 600 BC** — the strategy board game of the 16
+Mahajanapadas. Draw the bounty of the land, coin it into armies, conquer provinces and Great
+Kingdoms, weather disasters and riots, and be first to the victory target.
 
-- **⚔️ Online multiplayer** — host a room, share the 5-character code, play live with friends anywhere.
-- **🛕 Same screen (hot-seat)** — pass-and-play on one device; the engine runs locally.
+Play **same-screen** with friends around one device, or **online** with a room code — 2 to 8
+rulers, on desktop or phone.
+
+<p>
+  <a href="#quick-start"><b>Quick start</b></a> ·
+  <a href="#how-to-play-in-a-minute"><b>How to play</b></a> ·
+  <a href="#screenshots"><b>Screenshots</b></a> ·
+  <a href="#art-direction"><b>Art direction</b></a> ·
+  <a href="#hosting-for-friends"><b>Hosting</b></a>
+</p>
+
+---
+
+## Screenshots
+
+| The table, mid-turn | Online royal court |
+| --- | --- |
+| ![Board with coach, wooden pawns, terrains and region orders](docs/screenshots/board.webp) | ![Online lobby with a room code and two seated rulers](docs/screenshots/lobby.webp) |
+| **Draft your ruler** | **The land speaks** |
+| ![Personality and ability draft](docs/screenshots/draft.webp) | ![Resource card reveal with all-ruler and drawer gains](docs/screenshots/resource-reveal.webp) |
+| **Eight rulers, one rail** | **Phone layout** |
+| ![Eight-player table with compact ruler cards](docs/screenshots/eight-players.webp) | <img src="docs/screenshots/mobile.webp" width="300" alt="Mobile board and command dock"> |
+
+The **visual language** sheet shows how the digital cues map to the physical pieces:
+
+![Visual language: pawns, crests, value discs, peg track, terrain, cards](docs/screenshots/visual-language.webp)
+
+---
+
+## Features
+
+- **2–8 rulers** — 2–4 solo kingdoms; 5–8 as co-ruled kingdoms sharing four thrones.
+- **Two ways to play** — pass-and-play on one screen, or online rooms with a 5-character code,
+  seat reclaim after a refresh, and automatic state sync.
+- **The full game** — resource deck, selling and harbour trade, army cards and forging, movement,
+  conquest, secret simultaneous battle commits, forts, VP-stealing conquests, prize conditions,
+  disasters, abilities and hidden tokens.
+- **A board you can actually read** — fit-to-pane map, 100–400 % zoom (buttons, wheel, pinch),
+  drag-to-pan, and a distraction-free **Focus** mode.
+- **Table cues from the physical game** — painted terrain, wooden pawns with power badges, black
+  value discs, a peg-hole VP tracker and gold-framed cards.
+- **Guided turns** — a one-step coach (“draw”, “select an army”, “march”), disabled-reason
+  tooltips, and an end-turn guard that won't forfeit actions by accident.
+- **Survives real life** — same-screen games resume after a refresh; online seats rejoin.
+- **Playable on phones** — responsive menu and setup, a horizontal ruler rail, zoomable board.
+- **Keyboard and screen-reader support** — arrow keys walk the hex lattice, Enter selects, Esc
+  clears; regions and the chronicle are announced.
 
 ---
 
@@ -17,116 +61,162 @@ Supports **2–8 rulers** (2–4 solo kingdoms, 5–8 as co-ruled kingdoms), in 
 ```bash
 npm install
 
-# development (server on :3001 + vite dev client on :5173)
-npm run dev
+# development: rules server on :3001, Vite client on :5173
+npm run dev          # open http://localhost:5173
 
-# production (build once, serve everything from :3001)
-npm start          # = vite build + node server, PORT env supported
+# production: build once, serve everything from one process
+npm start            # http://localhost:3001
 ```
 
-Open http://localhost:5173 (dev) or http://localhost:3001 (prod), pick a mode, and rule.
+Requires **Node 18+**. Hosting notes are below.
 
-## Hosting it for friends
+---
 
-Any Node 18+ host works — the server is a single process serving both the API and the built client.
+## How to play in a minute
 
-- **VPS / your machine:** `npm run build && PORT=3001 npm run serve`, open/forward port 3001.
-  For friends on other networks, expose it via your favourite tunnel (cloudflared, tailscale funnel,
-  ngrok) or a $5 VPS (Render, Railway, Fly.io — set `npm run serve` as the start command, build
-  command `npm run build`).
-- Share the **room code** shown in the lobby; players join from the main menu → *Join*.
-- Reconnects are safe: each browser keeps a player key and rejoins into its seat automatically.
+1. **Draft** a personality and two abilities. The first ruler to the victory target wins.
+2. **Resource phase** — draw a resource card; **every ruler gains its bounty**, then the active
+   court may sell surplus (2 resources → 1 coin; trade goods need an export harbour), recruit or
+   forge army cards.
+3. **Action phase** — take **2 free actions** (extra actions cost 1 coin):
+   - **March** an army one region.
+   - **Conquer** a region with your army present: provinces cost coins equal to their value;
+     Mahajanapadas cost army cards. Conquering plants a fort and grants its value in VP.
+   - **Battle** a rival army: both sides secretly commit army cards simultaneously; the defender
+     adds the region's terrain value (max +3).
+   - **Search** hidden tokens, **clear** disasters, or use an ability.
+4. **Events** (advanced) — an omen lands on the map. Afflicted rulers must spend an action and
+   resources to clear it; ignored riots topple forts.
+5. **End turn** — victory-point conditions are checked, a prize card is drawn, and play passes on.
 
-## How the game maps to the physical board
+The in-game **Rules** button covers every option, card and edge case.
+
+### House tweaks (host)
+
+| Setting | Default | Notes |
+| --- | --- | --- |
+| Victory target | 20 VP | 25 at 2 players; scales up for 5+ |
+| Ruleset | Advanced | Basic drops disasters, abilities and hidden tokens |
+| Events | Every 2nd round | Every turn, every 3rd round, or off |
+| Forts per kingdom | 6 | Conquests plant forts; run out and you cannot conquer |
+| Free actions | 2 | Extras cost 1 coin |
+| Hidden tokens | 10 | Search them with an army for treasure… or an ambush |
+
+Presets: **Quick** (basic, 15 VP), **Classic** (advanced, 20 VP), **Full Chaos** (disasters every
+turn).
+
+---
+
+## How the physical game maps to the screen
+
+![Component cues](docs/screenshots/visual-language.webp)
 
 | Physical component | Web adaptation |
 | --- | --- |
-| Map of Bharata (provinces + 16 Mahajanapadas) | 38-region map with historical realms, rivers, export harbors (⚓), capitals (⭐) |
-| Player tracker (VP / iron / wood / food) | Live tracker in every player card, capped at 10 (tweakable) |
-| Resource modifier deck | 24-card deck; flips publicly, **all rulers gain** its grants, then the active court trades |
-| Coins & selling | Sell resources 2:1 for coins (tweakable); trade objects 2 coins each **if you control a harbor** |
-| Army cards (Army I & II) | Buy cards (2 coins, tweakable) into either army; army stacks are public (like face-up cards) |
-| 2 free actions, 3rd+ costs 1 coin | Enforced exactly; buy extra actions with coins |
-| Move / conquer / battle | Move = 1 region; conquer = pay the region's number (coins for provinces, army cards for Mahajanapadas); battle = secret simultaneous commit, defender adds terrain value |
-| Forts & VP | Conquering places a fort, gains the region's value in VP plus its yields/trade; seizing a ruled region **steals** those VPs (tweakable) |
-| Army loss & respawn | Lose all battle cards → army destroyed; respawn at capital when you reinforce (or rise in rebellion if you hold nothing) |
-| Personality cards | 6 personalities drafted at setup (permanent perks) |
-| VP condition prize cards | 6 conditions auto-checked at end of turn → draw a prize card, choose 1 of 2 boons |
-| Advanced: events | Floods, outbreaks, locusts, riots, droughts, sandstorms, sea storms placed on the map; afflicted rulers must spend an action + resources to clear them (ignored riots topple forts) |
-| Advanced: ability cards | 8 abilities, 2 uses each, several grant event immunity |
-| Advanced: hidden tokens | 10 tokens hidden on the map; search with an army — VPs, coins, trade, medicine… or an ambush |
+| Painted map of ancient India | 38-region hex atlas (16 Mahajanapadas + provinces) with terrain derived from each region's yields, rivers, harbours, ships and sea labels |
+| Handmade Channapatna armies | Wooden-pawn pieces in seat colours with an army numeral and a dark power badge |
+| Player trackers with peg holes | Ruler cards with a kingdom crest and a drilled VP track |
+| Black value discs / blue harbour markers / red disaster tokens | Region value badges, harbour trade accents, disaster tokens; gold `?` marks hidden tokens |
+| Army cards, personality cards, prize deck | Gold-framed parchment cards, personality emblems, wax-seal reveals |
+| Secret simultaneous commits | Battle modal with both hands revealed after commit |
 
-### Documented adaptations (house choices where the physical rules are ambiguous)
+---
 
-- Committed battle cards are spent permanently (per "lose all battle cards → lose the army").
-- Battle ties go to the defender; losing armies retreat to their capital (tweak: destroyed instead).
-- Defense bonus applies when the defender's kingdom rules the region.
-- Mahajanapada conquest payment comes from your army card stacks.
-- A player with zero armies and a lost capital rises in rebellion at the capital when reinforcing.
-- 5–8 players: co-rulers share a kingdom's banners and forts; each commands one army and their own court.
-- Events that find no legal target pass without effect.
+## Art direction
 
-## Tweaks (host configures before start)
+The physical edition is a painted atlas: muted land, blue-green sea, hand-drawn borders,
+Channapatna wooden pieces, cream peg trackers and colour-coded illustrated cards. We studied the
+publisher's component photography and the designers' notes on the art, then translated the
+*visual cues* — not the artwork — into vector form:
 
-Every option carries a plain-language description on the setup screens (hover for tooltips), plus
-presets: **🌱 Quick** (Basic, 15 VP), **🏛 Classic** (Advanced, 20 VP — recommended), **🔥 Full Chaos**
-(disasters every turn).
+- **Land** is tinted by its yield (forest for wood, ridges for iron, field rows for food, dunes for
+  arid), with rivers and harbours drawn in ink.
+- **Sea** is a pale blue-green wash with wave hatching, two sailing ships and spaced
+  `ARABIAN SEA` / `BAY OF BENGAL` labels.
+- **Values** are black discs with cream numerals, as on the printed board.
+- **Armies** are turned-wood pawns with a numeral and a power badge.
+- **Trackers** use a crest and ten drilled holes with a coloured peg.
+- **Cards** keep one frame language: parchment, gold foil, a sword watermark and a wax seal.
 
-- Victory target (10–40 VP; defaults: 20, 25 for duels, +5 per extra team)
-- Basic vs Advanced rules; event frequency (every turn / every 2nd / every 3rd / off — 4+ rulers
-  default to every 3rd round)
-- Forts per kingdom, free actions per turn, hidden token count
-- (More constants — sell rate, card cost, resource cap, VP steal, affliction strictness, retreat
-  policy — are engine defaults in `shared/engine.ts → DEFAULT_CONFIG`.)
+References (used for research only — no assets are copied):
 
-A **📜 How to play** guide lives on the start page, the setup screens, the lobby, and behind the
-in-game Rules button: goal, the three phases, war & terrain, reading the map and icons, personalities
-& abilities, and what every tweak means.
+- [GoIndia Games — Bharata 600 BC product page](https://goindiagames.com/products/bharata-600-bc)
+- [BoardGameGeek — Bharata 600 BC](https://boardgamegeek.com/boardgame/325882/bharata-600-bc)
+- [The Hindu — “These board games pack in fun facts about being Indian”](https://www.thehindu.com/life-and-style/these-board-games-pack-in-fun-facts-about-being-indian/article33395093.ece)
+- [The New Indian Express — “Pieces with a purpose”](https://www.newindianexpress.com/cities/bengaluru/2020/Dec/08/pieceswith-a-purpose-2233105.html)
 
-## Balance & integrity notes (from automated playtesting)
+Bharata 600 BC is designed by Cristina Maiorescu and Sumit Sinha, illustrated by Ishan Trivedi,
+art-directed by Pallavi Nopany, and published by GoIndia Games. This is an independent fan
+adaptation for playing with friends; it is not affiliated with or endorsed by the publisher.
 
-- Events default to every 3rd round at 4+ players; max 2 tokens per region; most disasters clear
-  for 1 resource, and any can be cleared with coins (3 per missing resource, min 3).
-- Armies with no battle cards cannot march into enemy-held ground; a defender beaten at their own
-  capital is destroyed rather than "retreating" in place; ANY army that spends its last card
-  disbands, winner or loser.
-- Iron has a sink: ⚒ Forge an army card for 2 iron + 1 coin (a coin-strapped conqueror's buy).
-- Defender terrain bonus is capped at +3 (walls don't stop a horde); each battle won grants +1 VP
-  so the martial path stays live. Army stacks hold at most 10 cards.
-- VP-condition thresholds: Empire 5 regions, Warlord 1 battle win, Magnate 15 coins, Grand
-  Stockpile 9 of a resource; prize VP trimmed so condition-farming doesn't dominate conquest.
-- Server hardening: 5-character room codes, per-IP failed-join throttling, host-config whitelisting
-  and clamping, RNG state never sent to clients, hidden-token contents masked, battle/commit
-  validation before any mutation.
-- Disconnects never stall the table: a dropped ruler's seat auto-plays minimal actions (draw,
-  clear afflictions, commit one card, pass) after a grace period. Seats are reclaimed by secret
-  seat tokens (stored per browser; the menu offers ↻ Rejoin), so nobody can hijack a throne.
-- The last march can be rolled back with ↺ Undo march — until anything else happens on the table.
-- Cross-origin socket access is closed by default (the server serves its own client); hosted
-  deployments can open selected origins with `ALLOWED_ORIGINS="https://a.example,…"`.
-- The whole interface is hand-drawn SVG/CSS art — manuscript grain, ocean waves, compass rose,
-  ornate frames, silk-sheen cards, mandala watermark — no image assets, crisp at any zoom.
+---
 
-## Project structure
+## Architecture
 
 ```
-shared/    rules engine + all game data (pure TS, used by server AND hot-seat client)
-server/    Express + Socket.IO room manager (authoritative)
-client/    React UI: menu, lobby, SVG board, dashboards, battle/event/draft modals
-scripts/   headless playthroughs: npm run sim · npm run sim:variants · npm run e2e
+shared/    pure TypeScript rules engine + map, decks, personalities, abilities
+server/    Express + Socket.IO: rooms, seats, host config, reconnect, sanitisation
+client/    React + Vite: menu, lobby, SVG atlas, command dock, modals, rules guide
+e2e/       Playwright journeys (UI + socket-level) and the visual capture scripts
+scripts/   simulations, playtest invariants, perf budget, artifact generation
 ```
 
-## Testing
+- The engine is **deterministic and seeded**; the server is authoritative and sends each client a
+  sanitised view (decks and hidden tokens are never leaked).
+- Hot-seat and online share the same engine and screens; the transport is the only difference.
+- State at rest: a versioned `localStorage` snapshot for same-screen resume (~7 KB).
+
+---
+
+## Testing and performance
 
 ```bash
-npm run typecheck       # strict TS across client+server+shared
-npm run sim             # full 2P advanced game driven by bots, with invariant asserts
-npm run sim:variants    # basic 3P, team 7P, 8P configs
-npm run sim:invariants  # deck/resource/board invariants checked after EVERY action
-npm run sim:logic4p     # 4 distinct-strategy bots, 4P+6P playtest harness
-npm run e2e             # real socket clients: create/join/config/start/draft/act/rejoin (needs server up)
-npm run test:ui         # Playwright UI journeys: hot-seat full loop + online 2-browser sync
+npm run typecheck        # TypeScript, no emit
+npm run test:ui          # 8 Playwright journeys (hot-seat, online, conquer, economy, guidance,
+                         # accessibility, resume, setup)
+npm run e2e              # socket-level network/e2e checks
+npm run sim              # simulated full games + rule assertions
+npm run sim:invariants   # state invariants after every action
+npm run perf             # render + bundle budget (dev server on :5173)
 ```
 
-*"Players have a great level of control over their play style and outcome — opt in or out of combat,
-objectives, competition or collaboration."* — the designers' intent, kept intact here.
+Latest measurements: **~98 kB gzip** initial JS (rules guide split into its own 2.2 kB chunk),
+**no long task over 50 ms**, and local UI interactions do not re-render the 38-region board.
+
+---
+
+## Hosting for friends
+
+Any Node 18+ host works — one process serves the API, sockets and the built client.
+
+```bash
+npm run build
+PORT=3001 npm run serve
+```
+
+- Expose the port with a tunnel (cloudflared, Tailscale Funnel, ngrok) or a small VPS
+  (Render, Railway, Fly.io: build `npm run build`, start `npm run serve`).
+- For a separate client origin, set `ALLOWED_ORIGINS="https://your.client"` on the server.
+- Share the **5-character room code** from the lobby; friends join from the main menu.
+  Seat tokens are stored per browser, so a refresh rejoins automatically.
+
+---
+
+## Regenerating the images
+
+With the dev server running on `:5173`:
+
+```bash
+npm run artifacts
+```
+
+This captures the real UI at 2× into `docs/screenshots/*.webp` and renders the component sheet
+from the same React art components the game uses. Requires `cwebp` (from `webp`).
+
+---
+
+## Credits
+
+- Original game: **Bharata 600 BC**, GoIndia Games.
+- Rules engine, server and interface: this repository.
+- Type: Rozha One & Cormorant Garamond.
