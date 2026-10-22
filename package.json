@@ -18,7 +18,8 @@
     "test:ui": "playwright test --config e2e/playwright.config.ts",
     "typecheck": "tsc --noEmit",
     "perf": "node scripts/perf.mjs",
-    "artifacts": "tsx scripts/artifacts.ts"
+    "artifacts": "tsx scripts/artifacts.ts",
+    "demo": "tsx scripts/demo.ts"
   },
   "dependencies": {
     "express": "^4.19.2",

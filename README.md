@@ -33,6 +33,13 @@ The **visual language** sheet shows how the digital cues map to the physical pie
 
 ![Visual language: pawns, crests, value discs, peg track, terrain, cards](docs/screenshots/visual-language.webp)
 
+<details>
+<summary><b>Watch a turn</b> — draw, sell, march, conquer</summary>
+
+![Animated turn: resource card, sale ledger, march trail and conquest](docs/screenshots/turn.gif)
+
+</details>
+
 ---
 
 ## Features
@@ -49,6 +56,10 @@ The **visual language** sheet shows how the digital cues map to the physical pie
   value discs, a peg-hole VP tracker and gold-framed cards.
 - **Guided turns** — a one-step coach (“draw”, “select an army”, “march”), disabled-reason
   tooltips, and an end-turn guard that won't forfeit actions by accident.
+- **Action feedback** — marches leave a trail and a destination ripple, conquests flash the tile,
+  and every coin/resource/VP change appears in a short transaction ledger over the board.
+- **Legible tiles** — hover a region for its value, owner and yields; legal marches are gold-lit,
+  and the sidebar shows turn order and a drilled VP track.
 - **Survives real life** — same-screen games resume after a refresh; online seats rejoin.
 - **Playable on phones** — responsive menu and setup, a horizontal ruler rail, zoomable board.
 - **Keyboard and screen-reader support** — arrow keys walk the hex lattice, Enter selects, Esc
@@ -180,7 +191,7 @@ npm run sim:invariants   # state invariants after every action
 npm run perf             # render + bundle budget (dev server on :5173)
 ```
 
-Latest measurements: **~98 kB gzip** initial JS (rules guide split into its own 2.2 kB chunk),
+Latest measurements: **~100 kB gzip** initial JS (rules guide split into its own 2.2 kB chunk),
 **no long task over 50 ms**, and local UI interactions do not re-render the 38-region board.
 
 ---
@@ -212,6 +223,10 @@ npm run artifacts
 
 This captures the real UI at 2× into `docs/screenshots/*.webp` and renders the component sheet
 from the same React art components the game uses. Requires `cwebp` (from `webp`).
+
+```bash
+npm run demo   # records the short turn GIF (requires ffmpeg)
+```
 
 ---
 
