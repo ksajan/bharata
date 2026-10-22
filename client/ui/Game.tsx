@@ -30,6 +30,7 @@ export function Game(props: {
   const [selectedArmy, setSelectedArmy] = useState<ArmyId | null>(null)
   const [showHelp, setShowHelp] = useState(false)
   const [focusBoard, setFocusBoard] = useState(false)
+  const [showRulers, setShowRulers] = useState(false)
   const [sell, setSell] = useState({ iron: 0, wood: 0, food: 0, trade: 0 })
   const [conquerRegion, setConquerRegion] = useState<string | null>(null)
   const [revealDismissed, setRevealDismissed] = useState<string | null>(null)
@@ -80,10 +81,27 @@ export function Game(props: {
 
   useEffect(() => {
     if (error) {
-      const t = setTimeout(() => setError(null), 3200)
+      const t = setTimeout(() => setError(null), 3000)
       return () => clearTimeout(t)
     }
   }, [error])
+
+  useEffect(() => {
+    if (!showRulers) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowRulers(false)
+    }
+    const desktop = window.matchMedia('(min-width: 901px)')
+    const onResize = () => {
+      if (desktop.matches) setShowRulers(false)
+    }
+    window.addEventListener('keydown', onKey)
+    desktop.addEventListener('change', onResize)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      desktop.removeEventListener('change', onResize)
+    }
+  }, [showRulers])
 
   useEffect(() => {
     if (!focusBoard) return
@@ -112,7 +130,7 @@ export function Game(props: {
     prevSeat.current = state.activeSeat
     if (hotseat || prev === state.activeSeat || state.phase === 'draft' || state.phase === 'gameover') return
     setTurnToast(state.activeSeat === mySeatId ? 'Your turn' : `${activeSeatName}'s turn`)
-    const t = setTimeout(() => setTurnToast(null), 2600)
+    const t = setTimeout(() => setTurnToast(null), 2400)
     return () => clearTimeout(t)
   }, [state.activeSeat, state.phase, hotseat, mySeatId, activeSeatName])
 
@@ -153,7 +171,7 @@ export function Game(props: {
 
   useEffect(() => {
     if (!fx) return
-    const t = setTimeout(() => setFx(null), 1900)
+    const t = setTimeout(() => setFx(null), 1800)
     return () => clearTimeout(t)
   }, [fx])
 
@@ -274,12 +292,14 @@ export function Game(props: {
               : `Turn — ${activeSeat?.name} of ${activeKingdom?.name} (${state.actionsLeft} action${state.actionsLeft === 1 ? '' : 's'} left)`
   const needsHandoff = hotseat && !!mySeatId && ackedSeat !== mySeatId
   const offlineSeats = hotseat ? [] : Object.values(state.seats).filter((s) => !s.connected)
+  const hasLedger = !!fx && Object.keys(fx.deltas).length > 0
 
   // exactly one recommended action for the current state — the coach strip
-  const nextStep: { text: string; action?: { label: string; run: () => void } } | null = (() => {
-    if (state.phase === 'gameover') return null
+  const nextStep: { text: string; action?: { label: string; run: () => void } } = (() => {
+    if (state.phase === 'gameover') return { text: 'The age is decided.' }
     if (state.phase === 'draft') return { text: 'Choose your ruler’s persona to begin the age.' }
-    if (state.pendingBattle || state.pendingPrize) return null
+    if (state.pendingBattle) return { text: 'A battle awaits secret commitments.' }
+    if (state.pendingPrize) return { text: 'A ruler is choosing a victory prize.' }
     if (!me) return { text: 'Watching the court — pick a side.' }
     if (!isMyTurn) return { text: `Waiting for ${state.seats[state.activeSeat]?.name ?? 'the active ruler'}.` }
     if (state.phase === 'resource' && !state.resourceCardDrawn) {
@@ -294,11 +314,11 @@ export function Game(props: {
       if (!selectedArmyObj) return { text: 'Select an army below, then click a gold-lit neighbour to march.' }
       return { text: 'Click a gold-lit neighbouring region to march, or inspect a region for orders.' }
     }
-    return null
+    return { text: 'The table waits.' }
   })()
 
   return (
-    <div className={`game ${focusBoard ? 'focus-board' : ''}`}>
+    <div className={`game ${focusBoard ? 'focus-board' : ''} ${showRulers ? 'show-rulers' : ''}`}>
       <a className="skip-link" href="#game-controls">
         Skip to controls
       </a>
@@ -314,8 +334,19 @@ export function Game(props: {
             </div>
           ))}
         </div>
-        <div className="turn-banner" aria-live="polite">{bannerText}</div>
+        <div
+          className={`turn-banner ${offlineSeats.length > 0 ? 'offline' : ''}`}
+          aria-live="polite"
+          title={offlineSeats.length > 0 ? `${offlineSeats.map((s) => s.name).join(', ')} disconnected` : bannerText}
+        >
+          {offlineSeats.length > 0
+            ? `⌁ ${offlineSeats.map((s) => s.name).join(', ')} disconnected — their court auto-plays`
+            : bannerText}
+        </div>
         <div className="pill vp-target">First to {state.config.vpTarget} VP</div>
+        <button className="small ghost mobile-only" aria-expanded={showRulers} onClick={() => setShowRulers((v) => !v)}>
+          Rulers ({Object.keys(state.seats).length})
+        </button>
         <button className="small ghost" onClick={() => setShowHelp(true)}>
           Rules
         </button>
@@ -333,54 +364,78 @@ export function Game(props: {
       </div>
 
       {turnToast && <div className="turn-toast" role="status">{turnToast}</div>}
-      {offlineSeats.length > 0 && (
-        <div className="offline-banner" role="status">
-          ⌁ {offlineSeats.map((s) => s.name).join(', ')} disconnected — their court auto-plays until they return.
-        </div>
-      )}
 
+      {showRulers && <div className="drawer-scrim" onClick={() => setShowRulers(false)} />}
       <div className="game-main">
         {/* ---------- board ---------- */}
         <div className="board-pane">
-          {nextStep && (
-            <div className="next-step" role="status">
-              <span className="ns-kicker">Next</span>
+          <div className={`next-step ${hasLedger ? 'has-ledger' : ''}`} role="status">
+            <span className="ns-kicker">Next</span>
+            {fx && Object.keys(fx.deltas).length > 0 ? (
+              <div className="fx-ledger">
+                {Object.entries(fx.deltas)
+                  .sort(([a], [b]) => (a === state.activeSeat ? -1 : b === state.activeSeat ? 1 : 0))
+                  .map(([seatId, delta]) => {
+                    const seat = state.seats[seatId]
+                    if (!seat) return null
+                    const fmt = (n: number) => (n > 0 ? `+${n}` : `${n}`)
+                    return (
+                      <div key={seatId} className="fx-ledger-row">
+                        <span className="fx-ledger-dot" style={{ background: seat.color }} />
+                        <b>{seat.name}</b>
+                        {delta.vp ? <span className="fx-chip fx-vp">{fmt(delta.vp)} VP</span> : null}
+                        {(['coins', 'iron', 'wood', 'food', 'trade', 'medicine'] as const).map((key) =>
+                          delta[key] ? (
+                            <span key={key} className="fx-chip">
+                              {fmt(delta[key]!)} <Ico kind={key === 'coins' ? 'coin' : key} title={key} />
+                            </span>
+                          ) : null,
+                        )}
+                      </div>
+                    )
+                  })}
+              </div>
+            ) : (
               <span className="ns-text">{nextStep.text}</span>
-              {nextStep.action && (
-                <button className="small primary" onClick={nextStep.action.run}>
-                  {nextStep.action.label}
-                </button>
+            )}
+            {nextStep.action && (
+              <button className="small primary" onClick={nextStep.action.run}>
+                {nextStep.action.label}
+              </button>
+            )}
+          </div>
+          {(isMyTurn && afflictedRegions.length > 0 && state.phase === 'action') || state.pendingBattle ? (
+            <div className="board-alerts" aria-live="polite">
+              {isMyTurn && afflictedRegions.length > 0 && state.phase === 'action' && (
+                <div className="board-alert danger">
+                  🔥 {afflictedRegions
+                    .map((r) => {
+                      const kind = state.regions[r]?.eventTokens[0]?.kind
+                      const card = Object.values(EVENT_CARDS).find((c) => c.kind === kind)
+                      const rem = card?.removal
+                      const cost = rem
+                        ? [
+                            rem.coins ? `${rem.coins} coins` : '',
+                            rem.wood ? `${rem.wood} wood` : '',
+                            rem.food ? `${rem.food} food` : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' + ') || 'resources'
+                        : 'resources'
+                      return `${card?.name ?? 'Disaster'} afflicts ${REGIONS[r].name} — clear it (1⚡ + ${cost})`
+                    })
+                    .join(' · ')}{' '}
+                  — no other action is possible until then.
+                </div>
+              )}
+              {state.pendingBattle && state.phase !== 'draft' && (
+                <div className="board-alert battle">
+                  ⚔ Battle of {REGIONS[state.pendingBattle.regionId].name} — awaiting{' '}
+                  {state.pendingBattle.awaiting.map((s) => state.seats[s]?.name).join(', ') || '…'}
+                </div>
               )}
             </div>
-          )}
-          {isMyTurn && afflictedRegions.length > 0 && state.phase === 'action' && (
-            <div className="pill" style={{ margin: '8px 12px -2px', alignSelf: 'flex-start', borderColor: '#b03a2e', color: '#ffb0a0' }}>
-              🔥 {afflictedRegions
-                .map((r) => {
-                  const kind = state.regions[r]?.eventTokens[0]?.kind
-                  const card = Object.values(EVENT_CARDS).find((c) => c.kind === kind)
-                  const rem = card?.removal
-                  const cost = rem
-                    ? [
-                        rem.coins ? `${rem.coins} coins` : '',
-                        rem.wood ? `${rem.wood} wood` : '',
-                        rem.food ? `${rem.food} food` : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' + ') || 'resources'
-                    : 'resources'
-                  return `${card?.name ?? 'Disaster'} afflicts ${REGIONS[r].name} — clear it (1⚡ + ${cost})`
-                })
-                .join(' · ')}{' '}
-              — no other action is possible until then.
-            </div>
-          )}
-          {state.pendingBattle && state.phase !== 'draft' && (
-            <div className="pill" style={{ margin: '8px 12px -2px', alignSelf: 'flex-start', borderColor: '#c99b3f' }}>
-              ⚔ Battle of {REGIONS[state.pendingBattle.regionId].name} — awaiting{' '}
-              {state.pendingBattle.awaiting.map((s) => state.seats[s]?.name).join(', ') || '…'}
-            </div>
-          )}
+          ) : null}
           <div className="board-scroll">
             <Board
               state={state}
@@ -394,33 +449,21 @@ export function Game(props: {
               fx={fx}
             />
           </div>
-          {fx && Object.keys(fx.deltas).length > 0 && (
-            <div className={`fx-ledger ${hotseat ? 'hotseat' : ''}`} role="status">
-              {Object.entries(fx.deltas).map(([seatId, delta]) => {
-                const seat = state.seats[seatId]
-                if (!seat) return null
-                const fmt = (n: number) => (n > 0 ? `+${n}` : `${n}`)
-                return (
-                  <div key={seatId} className="fx-ledger-row">
-                    <span className="fx-ledger-dot" style={{ background: seat.color }} />
-                    <b>{seat.name}</b>
-                    {delta.vp ? <span className="fx-chip fx-vp">{fmt(delta.vp)} VP</span> : null}
-                    {(['coins', 'iron', 'wood', 'food', 'trade', 'medicine'] as const).map((key) =>
-                      delta[key] ? (
-                        <span key={key} className="fx-chip">
-                          {fmt(delta[key]!)} <Ico kind={key === 'coins' ? 'coin' : key} title={key} />
-                        </span>
-                      ) : null,
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
         </div>
 
         {/* ---------- sidebar ---------- */}
-        <div className="sidebar">
+        <div
+          className="sidebar"
+          role={showRulers ? 'dialog' : undefined}
+          aria-modal={showRulers ? true : undefined}
+          aria-label={showRulers ? 'Rulers' : undefined}
+        >
+          <div className="drawer-head">
+            <h3>Rulers</h3>
+            <button className="small ghost" onClick={() => setShowRulers(false)}>
+              Close
+            </button>
+          </div>
           <details className="legend-strip">
             <summary>Legend — what every icon means</summary>
             <div>

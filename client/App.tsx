@@ -113,7 +113,7 @@ export default function App() {
 
   useEffect(() => {
     if (error) {
-      const t = setTimeout(() => setError(null), 3500)
+      const t = setTimeout(() => setError(null), 3000)
       return () => clearTimeout(t)
     }
   }, [error])
