@@ -60,8 +60,11 @@ The **visual language** sheet shows how the digital cues map to the physical pie
   and every coin/resource/VP change appears in a short transaction ledger over the board.
 - **Legible tiles** — hover a region for its value, owner and yields; legal marches are gold-lit,
   and the sidebar shows turn order and a drilled VP track.
+- **Stable layout, one motion scale** — the board never resizes when text changes; the coach,
+  dock, drawers and overlays share a fixed geometry, and every animation runs on the same
+  duration/easing tokens (with reduced-motion support).
 - **Survives real life** — same-screen games resume after a refresh; online seats rejoin.
-- **Playable on phones** — responsive menu and setup, a horizontal ruler rail, zoomable board.
+- **Playable on phones** — responsive menu and setup, a Rulers drawer, zoomable board.
 - **Keyboard and screen-reader support** — arrow keys walk the hex lattice, Enter selects, Esc
   clears; regions and the chronicle are announced.
 
@@ -183,8 +186,8 @@ scripts/   simulations, playtest invariants, perf budget, artifact generation
 
 ```bash
 npm run typecheck        # TypeScript, no emit
-npm run test:ui          # 8 Playwright journeys (hot-seat, online, conquer, economy, guidance,
-                         # accessibility, resume, setup)
+npm run test:ui          # 10 Playwright journeys (hot-seat, online, conquer, economy, guidance,
+                         # accessibility, resume, setup, board-geometry stability)
 npm run e2e              # socket-level network/e2e checks
 npm run sim              # simulated full games + rule assertions
 npm run sim:invariants   # state invariants after every action
