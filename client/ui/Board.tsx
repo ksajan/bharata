@@ -34,7 +34,14 @@ export const Board = React.memo(function Board(props: {
       }
     }
     const pad = 64
-    return { x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 }
+    // a slim title band above the northern hexes (compact cartouche)
+    const padTop = 100
+    return {
+      x: minX - pad,
+      y: minY - padTop,
+      w: maxX - minX + pad * 2,
+      h: maxY - minY + padTop + pad,
+    }
   }, [])
 
   const [box, setBox] = useState<Box>(fit)
@@ -299,14 +306,14 @@ export const Board = React.memo(function Board(props: {
         ))}
       </g>
 
-      {/* title cartouche */}
+      {/* compact title cartouche, clear of the northern hexes */}
       <g pointerEvents="none">
-        <rect x={minX + 34} y={minY + 30} width={252} height={64} rx={9} fill="#f7ecd2" fillOpacity="0.55" stroke="#8a6a30" strokeOpacity="0.8" />
-        <rect x={minX + 39} y={minY + 35} width={242} height={54} rx={6} fill="none" stroke="#7a5a24" strokeOpacity="0.45" />
-        <text x={minX + 52} y={minY + 62} fontFamily="Rozha One, serif" fontSize="28" fontWeight="400" fill="rgba(90,62,28,0.75)" letterSpacing="6">
+        <rect x={minX + 26} y={minY + 14} width={212} height={44} rx={8} fill="#f7ecd2" fillOpacity="0.6" stroke="#8a6a30" strokeOpacity="0.85" />
+        <rect x={minX + 31} y={minY + 19} width={202} height={34} rx={5} fill="none" stroke="#7a5a24" strokeOpacity="0.45" />
+        <text x={minX + 42} y={minY + 38} fontFamily="Rozha One, serif" fontSize="22" fontWeight="400" fill="rgba(90,62,28,0.8)" letterSpacing="4.5">
           BHĀRATA
         </text>
-        <text x={minX + 53} y={minY + 80} fontFamily="Cormorant Garamond, serif" fontStyle="italic" fontSize="14.5" fill="rgba(90,62,28,0.7)">
+        <text x={minX + 43} y={minY + 51} fontFamily="Cormorant Garamond, serif" fontStyle="italic" fontSize="10.5" fill="rgba(90,62,28,0.72)">
           the sixteen realms · 600 BC
         </text>
       </g>
@@ -326,7 +333,7 @@ export const Board = React.memo(function Board(props: {
         </text>
       </g>
       <Ship x={minX + 205} y={maxY - 245} scale={1.05} />
-      <Ship x={maxX - 165} y={minY + 205} scale={0.85} flip />
+      <Ship x={maxX - 165} y={minY + 241} scale={0.85} flip />
       <text x={minX + 150} y={maxY - 105} fontFamily="Cormorant Garamond, serif" fontSize={17} fill="rgba(38,74,102,0.7)" letterSpacing="7" transform={`rotate(-6 ${minX + 150} ${maxY - 105})`}>
         ARABIAN SEA
       </text>
