@@ -135,6 +135,8 @@ async function main() {
   await menu.locator('g.region').nth(6).click()
   await menu.waitForTimeout(350)
   await save(menu, 'region')
+  await menu.keyboard.press('Escape') // clear the selected-region ring for a clean hero
+  await menu.waitForTimeout(300)
 
   // ---------- focus (clean hero board) ----------
   await menu.getByRole('button', { name: /full board/i }).click()
