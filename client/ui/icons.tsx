@@ -16,8 +16,13 @@ export type IconKind =
 /** Raw geometry in a 16×16 viewBox — shared by the React <Ico> and the raw-SVG board renderer. */
 export const ICON_SHAPES: Record<IconKind, { fill: string; stroke?: string; d: string }[]> = {
   coin: [
-    { fill: '#d8b45a', stroke: '#7a5a1c', d: 'M8 1.5 A6.5 6.5 0 1 1 7.99 1.5 Z M8 3.4 A4.6 4.6 0 1 0 7.99 3.4 Z' },
-    { fill: '#7a5a1c', d: 'M8 5.2 A2.8 2.8 0 1 1 7.99 5.2 Z' },
+    // embossed silver coin, like the physical pieces
+    { fill: '#ece5d3', stroke: '#5f5847', d: 'M8 1.2 A6.8 6.8 0 1 1 7.99 1.2 Z M8 3.1 A4.9 4.9 0 1 0 7.99 3.1 Z' },
+    { fill: '#c9c0a8', stroke: '#5f5847', d: 'M8 4.4 A3.6 3.6 0 1 1 7.99 4.4 Z' },
+    {
+      fill: '#faf5e6',
+      d: 'M8 5.4 l0.9 1.6 1.7 0.2 -1.3 1.2 0.4 1.7 -1.7 -0.9 -1.7 0.9 0.4 -1.7 -1.3 -1.2 1.7 -0.2 Z',
+    },
   ],
   iron: [
     // anvil: top beak + waist + base

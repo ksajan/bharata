@@ -103,7 +103,7 @@ test.describe('Bharata hot-seat journey', () => {
   test('menu → setup → drafts → resource → actions → conquest → events → turn passes', async ({ page }) => {
     watch(page)
     await page.goto('/', { waitUntil: 'domcontentloaded' })
-    await expect(page.getByText('BHARATA 600 BC')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'BHARATA 600 BC' })).toBeVisible()
     await page.screenshot({ path: 'e2e/artifacts/menu.png' })
 
     // same-screen setup

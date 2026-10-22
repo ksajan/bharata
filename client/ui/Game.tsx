@@ -5,6 +5,7 @@ import type { Transport } from '../transport'
 import { Board } from './Board'
 import { RulesGuide } from './RulesGuideLazy'
 import { Ico } from './icons'
+import { KingdomCrest, VpTrack } from './art'
 import {
   BattleCommitModal,
   BattleRevealModal,
@@ -385,7 +386,8 @@ export function Game(props: {
               ))}
               <br />
               {[
-                ['🔢', 'value (= VP = cost = terrain bonus, max +3)'],
+                ['●', 'black disc = region value (VP = conquer cost = terrain bonus, max +3)'],
+                ['♟', 'wooden pawn = army (I/II, badge = power)'],
                 ['⭐', 'capital'], ['🚩', 'fort'], ['❓', 'hidden token'], ['⚓', 'harbor'], ['⭕', 'red discs = disasters'],
               ].map(([i, l]) => (
                 <span key={l} style={{ whiteSpace: 'nowrap', marginRight: 10 }}>
@@ -404,7 +406,7 @@ export function Game(props: {
               return (
                 <div key={s.id} className={`player-card ${active ? 'active' : ''} ${compact ? 'compact' : ''}`}>
                   <div className="pc-head">
-                    <span className="pc-dot" style={{ background: s.color }} />
+                    <KingdomCrest seed={s.kingdomId} label={k.name} size={15} color={s.color} />
                     <span className="pc-name">{s.name}</span>
                     {active && <span className="pc-playing">playing</span>}
                     {!s.connected && (
@@ -418,11 +420,10 @@ export function Game(props: {
                     </span>
                   </div>
                   <div className="pc-kingdom">
-                    {k.name} · {forts} fort{forts === 1 ? '' : 's'} · {REGIONS[k.capital].name}
+                    {k.name} · {forts} fort{forts === 1 ? '' : 's'}
+                    {REGIONS[k.capital].name !== k.name ? ` · ${REGIONS[k.capital].name}` : ''}
                   </div>
-                  <div className="vp-bar">
-                    <div style={{ width: `${Math.min(100, (s.vp / state.config.vpTarget) * 100)}%` }} />
-                  </div>
+                  <VpTrack vp={s.vp} target={state.config.vpTarget} color={s.color} />
                   {!compact && (
                     <>
                       <div className="pc-stats">
@@ -964,6 +965,9 @@ function ConquerCardPicker(props: {
             <div className="battle-cards">
               {army.cards.map((c) => (
                 <div key={c.id} className={`bcard ${picked.includes(c.id) ? 'picked' : ''}`} onClick={() => toggle(army.armyId, c.id)}>
+                  <span className="bcard-mark" aria-hidden>
+                    <Ico kind="sword" size={24} />
+                  </span>
                   {c.value}
                   <small>pay</small>
                 </div>
