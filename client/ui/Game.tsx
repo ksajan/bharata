@@ -369,10 +369,11 @@ export function Game(props: {
       <div className="game-main">
         {/* ---------- board ---------- */}
         <div className="board-pane">
-          <div className={`next-step ${hasLedger ? 'has-ledger' : ''}`} role="status">
+          <div className={`next-step ${hasLedger ? 'has-ledger' : ''} ${nextStep.action ? 'has-action' : ''}`} role="status">
             <span className="ns-kicker">Next</span>
-            {fx && Object.keys(fx.deltas).length > 0 ? (
-              <div className="fx-ledger">
+            <span className="ns-text">{nextStep.text}</span>
+            {hasLedger && (
+              <div className="fx-ledger" aria-hidden="true">
                 {Object.entries(fx.deltas)
                   .sort(([a], [b]) => (a === state.activeSeat ? -1 : b === state.activeSeat ? 1 : 0))
                   .map(([seatId, delta]) => {
@@ -395,8 +396,6 @@ export function Game(props: {
                     )
                   })}
               </div>
-            ) : (
-              <span className="ns-text">{nextStep.text}</span>
             )}
             {nextStep.action && (
               <button className="small primary" onClick={nextStep.action.run}>
