@@ -36,7 +36,7 @@ The **visual language** sheet shows how the digital cues map to the physical pie
 <details>
 <summary><b>Watch a turn</b> — draw, sell, march, conquer</summary>
 
-![Animated turn: resource card, sale ledger, march trail and conquest](docs/screenshots/turn.gif)
+![Animated turn: resource card, sale ledger, march trail and conquest](docs/screenshots/turn-v2.gif)
 
 </details>
 

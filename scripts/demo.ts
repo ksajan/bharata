@@ -11,7 +11,7 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 
 const BASE = process.env.BASE || 'http://localhost:5173'
-const OUT = path.resolve('docs/screenshots/turn.gif')
+const OUT = path.resolve('docs/screenshots/turn-v2.gif')
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'bharata-demo-'))
 
 async function main() {
@@ -99,7 +99,7 @@ async function main() {
   ])
   fs.rmSync(TMP, { recursive: true, force: true })
   const kb = Math.round(fs.statSync(OUT).size / 1024)
-  console.log(`✓ turn.gif (${kb} kB)`)
+  console.log(`✓ turn-v2.gif (${kb} kB)`)
 }
 
 main().catch((e) => {
