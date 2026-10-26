@@ -305,6 +305,18 @@ for (const army of state.armies) {
   if (!army.alive) assert(army.regionId === null, 'dead armies have no region')
   if (army.alive) assert(army.regionId !== null && REGIONS[army.regionId] !== undefined, 'live armies are on the map')
 }
+assert(Array.isArray(state.battleHistory), 'battle history is recorded')
+for (const b of state.battleHistory) {
+  assert(!!REGIONS[b.regionId], `battle region ${b.regionId} exists`)
+  assert(!!state.seats[b.attackerSeat] && !!state.seats[b.defenderSeat], 'battle seats exist')
+  assert(b.winnerSeat === b.attackerSeat || b.winnerSeat === b.defenderSeat, 'battle winner is a combatant')
+  assert(b.cards.every((c) => c.value >= 1), 'battle cards have values')
+}
+const recordedBattleIds = new Set(state.battleHistory.map((b) => b.id))
+for (const line of state.log) {
+  if (line.battleId) assert(recordedBattleIds.has(line.battleId), `log battle ${line.battleId} has a record`)
+}
+console.log(`  battles recorded: ${state.battleHistory.length}`)
 console.log(failures === 0 ? '✅ ALL CHECKS PASSED' : `❌ ${failures} checks failed`)
 
 console.log('\n— last 12 chronicle entries —')

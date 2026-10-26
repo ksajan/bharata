@@ -19,7 +19,8 @@
     "typecheck": "tsc --noEmit",
     "perf": "node scripts/perf.mjs",
     "artifacts": "tsx scripts/artifacts.ts",
-    "demo": "tsx scripts/demo.ts"
+    "demo": "tsx scripts/demo.ts",
+    "sim:battles": "tsx scripts/playtest/battle-history.ts"
   },
   "dependencies": {
     "express": "^4.19.2",

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { dismissReveal } from './helpers'
+import { REGIONS } from '../shared/data'
 
 /** Action history: grouped by turn, filterable by ruler and kind, searchable. */
 
@@ -50,6 +51,12 @@ test('history groups turns and filters by ruler and kind', async ({ page }) => {
   await expect(modal.locator('.hist-turn').first()).toContainText(/Turn 1/i)
   await expect(modal.locator('.hist-entry').filter({ hasText: /draws/i }).first()).toBeVisible()
   await expect(modal.locator('.hist-entry').filter({ hasText: /marches/i }).first()).toBeVisible()
+  // the drawn resource card is archived as a card face, not just prose
+  await expect(modal.locator('.hist-card-face').first()).toBeVisible()
+
+  // Round filter
+  await modal.getByRole('combobox', { name: 'Filter by round' }).selectOption('1')
+  await expect(modal.locator('.hist-entry').first()).toBeVisible()
 
   // My actions
   await modal.getByRole('button', { name: 'My actions' }).click()
@@ -66,11 +73,20 @@ test('history groups turns and filters by ruler and kind', async ({ page }) => {
 
   // Ruler filter (the guest's setup choice is still in Setup)
   await modal.getByRole('textbox', { name: 'Search history' }).fill('')
+  await modal.getByRole('combobox', { name: 'Filter by round' }).selectOption('all')
   await modal.getByRole('combobox', { name: 'Filter by ruler' }).selectOption({ label: 'Prasenajit' })
   await expect(modal.locator('.hist-entry').filter({ hasText: /Prasenajit/i }).first()).toBeVisible()
 
-  await page.keyboard.press('Escape')
+  // One-click jump to my latest action
+  await modal.getByRole('button', { name: 'My last action' }).click()
+  await expect(modal.locator('.hist-entry').first()).toContainText(/Bimbisara/i)
+
+  // Jump to the map: closes History and selects the named region
+  const mapButton = modal.locator('.hist-map').first()
+  await expect(mapButton).toBeVisible()
+  await mapButton.click()
   await expect(modal).toBeHidden()
+  await expect(page.locator('g.region.selected')).toHaveCount(1)
   expect(errors).toEqual([])
 })
 
@@ -83,6 +99,77 @@ test('history is reachable and readable on a phone', async ({ page }) => {
   const box = await modal.boundingBox()
   expect(box?.width ?? 999).toBeLessThanOrEqual(390)
   await expect(modal.locator('.hist-entry').first()).toBeVisible()
+  await modal.getByRole('button', { name: 'Close' }).click()
+  await expect(modal).toBeHidden()
+})
+
+
+test('battle records expand and replay from history', async ({ page }) => {
+  await startGame(page)
+  const regionId = await page.evaluate(
+    ({ regionNames }) => {
+      const raw = localStorage.getItem('bharata-hotseat-v1')
+      if (!raw) throw new Error('no snapshot')
+      const snap = JSON.parse(raw)
+      const st = snap.state
+      const ids = Object.keys(st.seats).sort()
+      const atk = ids[0]
+      const def = ids[1]
+      const rid = st.kingdoms[st.seats[atk].kingdomId].capital
+      const regionName = regionNames[rid] ?? rid
+      const cards = [
+        { seatId: atk, armyId: 1, value: 6 },
+        { seatId: atk, armyId: 1, value: 5 },
+        { seatId: def, armyId: 1, value: 4 },
+        { seatId: def, armyId: 1, value: 3 },
+      ]
+      st.battleHistory = [
+        {
+          id: 'test-battle',
+          round: 1,
+          regionId: rid,
+          attackerSeat: atk,
+          defenderSeat: def,
+          attackerTotal: 11,
+          defenderTotal: 9,
+          defenderBonus: 2,
+          winnerSeat: atk,
+          cards,
+        },
+      ]
+      st.log.push({
+        id: st.logSeq++,
+        text: `⚔ ${st.seats[atk].name} wins the Battle of ${regionName} (11 vs 9 incl. +2 terrain)!`,
+        kind: 'battle',
+        round: 1,
+        battleId: 'test-battle',
+      })
+      localStorage.setItem('bharata-hotseat-v1', JSON.stringify(snap))
+      return rid
+    },
+    { regionNames: Object.fromEntries(Object.entries(REGIONS).map(([id, r]) => [id, r.name])) },
+  )
+  expect(regionId).toBeTruthy()
+  await page.reload()
+  await page.waitForTimeout(500)
+  await page.locator('.resume-banner').click()
+  await page.waitForTimeout(500)
+  const take = page.getByRole('button', { name: 'Take the bounty' })
+  if (await take.isVisible().catch(() => false)) await take.click()
+  await page.waitForTimeout(200)
+  const hand = page.locator('.modal-backdrop .primary', { hasText: 'I am ' })
+  if (await hand.count()) await hand.click()
+  await historyButton(page).click()
+  const modal = page.locator('.history-modal')
+  await modal.getByRole('button', { name: 'Battles' }).click()
+  const battle = modal.locator('.hist-battle')
+  await expect(battle).toBeVisible()
+  await battle.locator('summary').click()
+  await expect(battle.locator('.hist-mini-card')).toHaveCount(4)
+  await battle.getByRole('button', { name: /Replay battle/ }).click()
+  await expect(page.locator('.battle-replay')).toBeVisible()
+  await expect(page.locator('.battle-replay .hist-mini-card')).toHaveCount(4)
+  await page.getByRole('button', { name: 'Close replay' }).click()
   await modal.getByRole('button', { name: 'Close' }).click()
   await expect(modal).toBeHidden()
 })
