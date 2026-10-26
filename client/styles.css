@@ -862,3 +862,115 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   .lobby-players { grid-template-columns: 1fr; }
   .mini-grid { grid-template-columns: 1fr; }
 }
+
+/* ---------------------------------------------------------------------------
+   Player perspective + history
+--------------------------------------------------------------------------- */
+.pc-you {
+  font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+  color: #ffe9b8; background: rgba(230, 189, 99, 0.16); border: 1px solid var(--gold);
+  border-radius: 999px; padding: 0 5px;
+}
+.player-card.compact .pc-you { font-size: 8px; padding: 0 4px; }
+.resource-owner {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.09em;
+  color: #7a5a1c; font-weight: 700; margin-bottom: 2px;
+}
+.log-expand {
+  border: none; background: none; color: #95876a; padding: 0 2px; font-size: 15px;
+  line-height: 1; font-weight: 400;
+}
+.log-expand:hover:not(:disabled) { background: none; color: var(--gold-bright); }
+
+.history-modal {
+  width: min(780px, 100%); max-height: 88vh; padding: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.history-head {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  padding: 20px 24px 10px; flex: 0 0 auto;
+}
+.history-kicker {
+  font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #7a5a1c; font-weight: 700;
+}
+.history-head h2 { margin: 2px 0 0; font-size: 28px; color: var(--maroon); }
+.history-head .sub { margin: 2px 0 0; font-size: 13.5px; }
+.history-filters {
+  display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto;
+  padding: 0 24px 12px; border-bottom: 1px solid rgba(123, 45, 38, 0.22);
+}
+.hist-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.hist-chip {
+  font-size: 12px; padding: 2px 10px; border-radius: 999px;
+  border: 1px solid rgba(123, 45, 38, 0.35); background: rgba(255, 250, 235, 0.45);
+  color: var(--ink-soft); font-weight: 600;
+}
+.hist-chip:hover:not(:disabled) { background: #fff6df; color: var(--maroon); border-color: var(--maroon); }
+.hist-chip.on { background: var(--maroon); border-color: var(--maroon); color: #ffe9b8; }
+.hist-controls { display: flex; gap: 8px; align-items: center; }
+.hist-controls select, .hist-controls input {
+  background: #fffaf0; color: var(--ink); border: 1px solid #b98a2f; font-size: 13.5px;
+}
+.hist-controls select { flex: 0 0 150px; }
+.hist-controls input { flex: 1; min-width: 0; }
+.history-feed {
+  flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable;
+  padding: 12px 24px 16px; background: rgba(255, 250, 235, 0.32);
+}
+.hist-section { margin-bottom: 10px; }
+.hist-turn {
+  font-family: var(--font-display); font-size: 15px; color: var(--maroon);
+  background: rgba(201, 155, 63, 0.14); border-left: 3px solid var(--gold);
+  border-radius: 0 7px 7px 0; padding: 5px 9px; margin: 10px 0 4px;
+}
+.hist-turn.setup { color: #6b5638; border-left-color: #b98a2f; }
+.hist-entry {
+  display: flex; align-items: flex-start; gap: 7px; padding: 5px 8px;
+  font-size: 14px; line-height: 1.35; color: var(--ink);
+  border-left: 3px solid transparent; border-bottom: 1px dotted rgba(123, 45, 38, 0.14);
+}
+.hist-entry:hover { background: rgba(255, 246, 223, 0.7); }
+.hist-entry.battle { border-left-color: var(--maroon-bright); background: rgba(160, 60, 50, 0.045); }
+.hist-entry.event { border-left-color: var(--teal); background: rgba(49, 112, 142, 0.05); }
+.hist-entry.gain { border-left-color: var(--green); background: rgba(77, 107, 52, 0.04); }
+.hist-entry.turn { border-left-color: var(--gold); }
+.hist-dots { display: flex; gap: 3px; padding-top: 5px; min-width: 8px; flex: 0 0 auto; }
+.hist-dots i { width: 7px; height: 7px; border-radius: 50%; display: block; border: 1px solid rgba(23, 16, 11, 0.2); }
+.hist-glyph { width: 13px; text-align: center; color: #95876a; font-size: 12px; padding-top: 1px; flex: 0 0 auto; }
+.hist-text { flex: 1; min-width: 0; }
+.history-empty { text-align: center; color: #6b5638; font-style: italic; padding: 30px 10px; }
+.history-foot {
+  flex: 0 0 auto; padding: 8px 24px; border-top: 1px solid rgba(123, 45, 38, 0.22);
+  text-align: center; font-size: 11.5px; color: #6b5638; font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .history-modal { max-height: 92vh; }
+  .history-head { padding: 16px 16px 8px; }
+  .history-head h2 { font-size: 24px; }
+  .history-head .sub { font-size: 12.5px; }
+  .history-filters { padding: 0 16px 10px; }
+  .hist-controls { flex-wrap: wrap; }
+  .hist-controls select { flex: 1 0 100%; }
+  .hist-controls input { flex: 1 1 160px; }
+  .history-feed { padding: 10px 16px 14px; }
+  .hist-entry { font-size: 13.5px; }
+  .history-foot { padding: 7px 16px; }
+}
+
+/* shared-kingdom and out-of-turn court cues */
+.pc-co {
+  font-size: 8.5px; line-height: 1.4; color: #c9b17a; opacity: 0.95; text-transform: uppercase;
+  letter-spacing: 0.06em; border: 1px solid #6b5325; border-radius: 999px; padding: 0 4px; white-space: nowrap;
+}
+.player-card.compact .pc-co { font-size: 8px; padding: 0 3px; }
+.player-card:not(.compact) .pc-co { display: none; }
+.my-court {
+  position: sticky; top: -10px; z-index: 2; display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px;
+  padding: 6px 8px; margin-bottom: 2px; border: 1px solid #6b5325; border-radius: 8px;
+  background: linear-gradient(180deg, #2a1d12, #1a120c); font-size: 12px; color: #d8c79a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.my-court b { color: var(--gold-bright); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.my-court-vp { font-family: Georgia, serif; color: #fff; font-weight: 700; margin-right: 2px; }
+.my-court span { display: inline-flex; align-items: center; gap: 3px; }

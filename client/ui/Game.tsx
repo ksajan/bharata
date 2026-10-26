@@ -6,6 +6,7 @@ import { Board } from './Board'
 import { RulesGuide } from './RulesGuideLazy'
 import { Ico } from './icons'
 import { KingdomCrest, VpTrack } from './art'
+import { HistoryModal } from './History'
 import { diffStates, type GameFx } from './fx'
 import {
   BattleCommitModal,
@@ -31,6 +32,7 @@ export function Game(props: {
   const [showHelp, setShowHelp] = useState(false)
   const [focusBoard, setFocusBoard] = useState(false)
   const [showRulers, setShowRulers] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [sell, setSell] = useState({ iron: 0, wood: 0, food: 0, trade: 0 })
   const [conquerRegion, setConquerRegion] = useState<string | null>(null)
   const [revealDismissed, setRevealDismissed] = useState<string | null>(null)
@@ -68,7 +70,12 @@ export function Game(props: {
     return out
   })()
   const cardKey = state.lastResourceCard ? `${state.round}:${state.activeSeat}:${state.lastResourceCard.id}` : null
-  const showResourceReveal = !!cardKey && cardKey !== seenCard && state.resourceCardDrawn && state.phase !== 'draft'
+  const showResourceReveal =
+    !!cardKey &&
+    cardKey !== seenCard &&
+    state.resourceCardDrawn &&
+    state.phase !== 'draft' &&
+    state.activeSeat === mySeatId
 
   const submitSell = async (sel: typeof sell) => {
     const ok = await send({
@@ -293,6 +300,9 @@ export function Game(props: {
   const needsHandoff = hotseat && !!mySeatId && ackedSeat !== mySeatId
   const offlineSeats = hotseat ? [] : Object.values(state.seats).filter((s) => !s.connected)
   const hasLedger = !!fx && Object.keys(fx.deltas).length > 0
+  const mySeatObj = mySeatId ? state.seats[mySeatId] : null
+  const manySeats = Object.keys(state.seats).length > 4
+  const showMyCourt = manySeats && !!mySeatObj && state.activeSeat !== mySeatId
 
   // exactly one recommended action for the current state — the coach strip
   const nextStep: { text: string; action?: { label: string; run: () => void } } = (() => {
@@ -346,6 +356,9 @@ export function Game(props: {
         <div className="pill vp-target">First to {state.config.vpTarget} VP</div>
         <button className="small ghost mobile-only" aria-expanded={showRulers} onClick={() => setShowRulers((v) => !v)}>
           Rulers ({Object.keys(state.seats).length})
+        </button>
+        <button className="small ghost" onClick={() => setShowHistory(true)}>
+          History
         </button>
         <button className="small ghost" onClick={() => setShowHelp(true)}>
           Rules
@@ -487,21 +500,46 @@ export function Game(props: {
             </div>
           </details>
           <div className="players-list">
+            {showMyCourt && mySeatObj && (
+              <div className="my-court" title="Your court while another ruler holds the stage">
+                <KingdomCrest seed={mySeatObj.kingdomId} label={state.kingdoms[mySeatObj.kingdomId].name} size={14} color={mySeatObj.color} />
+                <b>You</b>
+                <span className="my-court-vp">
+                  {mySeatObj.vp}/{state.config.vpTarget}
+                </span>
+                <span><Ico kind="coin" title="coins" /> {mySeatObj.coins}</span>
+                <span><Ico kind="iron" title="iron" /> {mySeatObj.iron}</span>
+                <span><Ico kind="wood" title="wood" /> {mySeatObj.wood}</span>
+                <span><Ico kind="food" title="food" /> {mySeatObj.food}</span>
+                <span><Ico kind="trade" title="trade" /> {mySeatObj.trade}</span>
+              </div>
+            )}
             {Object.values(state.seats).map((s, seatIndex) => {
               const k = state.kingdoms[s.kingdomId]
               const forts = Object.values(k.forts).filter((x) => x === k.id).length
               const active = s.id === state.activeSeat
               const armies = state.armies.filter((a) => a.ownerId === s.id)
               const compact = Object.keys(state.seats).length > 4 && !active
+              const coRulers = Object.values(state.seats).filter((x) => x.kingdomId === s.kingdomId && x.id !== s.id)
               const delta = fx?.deltas[s.id] ?? {}
               return (
-                <div key={s.id} className={`player-card ${active ? 'active' : ''} ${compact ? 'compact' : ''}`}>
+                <div
+                  key={s.id}
+                  className={`player-card ${active ? 'active' : ''} ${compact ? 'compact' : ''}`}
+                  title={coRulers.length ? `Co-ruled with ${coRulers.map((x) => x.name).join(', ')}` : undefined}
+                >
                   <div className="pc-head">
                     <span className="pc-order" title={`Turn order ${seatIndex + 1}`}>
                       {seatIndex + 1}
                     </span>
                     <KingdomCrest seed={s.kingdomId} label={k.name} size={15} color={s.color} />
                     <span className="pc-name">{s.name}</span>
+                    {s.id === mySeatId && <span className="pc-you">you</span>}
+                    {coRulers.length > 0 && (
+                      <span className="pc-co" title={`Co-ruled with ${coRulers.map((x) => x.name).join(', ')}`}>
+                        shared
+                      </span>
+                    )}
                     {active && <span className="pc-playing">playing</span>}
                     {!s.connected && (
                       <span className="pc-off" title="reconnecting">
@@ -516,6 +554,7 @@ export function Game(props: {
                   <div className="pc-kingdom">
                     {k.name} · {forts} fort{forts === 1 ? '' : 's'}
                     {REGIONS[k.capital].name !== k.name ? ` · ${REGIONS[k.capital].name}` : ''}
+                    {coRulers.length > 0 ? ` · shared with ${coRulers.map((x) => x.name).join(', ')}` : ''}
                   </div>
                   <VpTrack vp={s.vp} target={state.config.vpTarget} color={s.color} />
                   {!compact && (
@@ -593,6 +632,14 @@ export function Game(props: {
                   ))}
                 </div>
               )}
+              <button
+                className="log-expand"
+                onClick={() => setShowHistory(true)}
+                title="Open full history"
+                aria-label="Open full history"
+              >
+                ⤢
+              </button>
             </div>
             {logOpen && (
               <div className="log-feed" role="log" aria-live="polite" aria-relevant="additions">
@@ -729,16 +776,20 @@ export function Game(props: {
               ) : (
                 <div className="hint">
                   {state.seats[state.activeSeat]?.name} manages their court…
-                  {state.lastResourceCard && (
+                  {state.resourceCardDrawn && state.lastResourceCard && (
                     <span style={{ marginLeft: 8 }}>
-                      Drawn by {state.seats[state.activeSeat]?.name}: <b>{state.lastResourceCard.title}</b> —{' '}
-                      {state.lastResourceCard.text}
+                      Drew <b>{state.lastResourceCard.title}</b> — its effects are applied to the table.
                     </span>
                   )}
                 </div>
               )}
-              {state.lastResourceCard && (
+              {state.activeSeat === mySeatId && state.resourceCardDrawn && state.lastResourceCard && (
                 <div className="resource-card" style={{ marginTop: 8 }} title="Drawn this turn — its gains applied to every ruler">
+                  <div className="resource-owner">
+                    {state.activeSeat === mySeatId
+                      ? 'You drew'
+                      : `${state.seats[state.activeSeat]?.name ?? 'A ruler'} drew`}
+                  </div>
                   <h5>{state.lastResourceCard.title}</h5>
                   {state.lastResourceCard.text}
                 </div>
@@ -1009,6 +1060,7 @@ export function Game(props: {
       {showResourceReveal && state.lastResourceCard && (
         <ResourceRevealModal card={state.lastResourceCard} onClose={() => setSeenCard(cardKey)} />
       )}
+      {showHistory && <HistoryModal state={state} mySeatId={mySeatId} onClose={() => setShowHistory(false)} />}
       {showHelp && <RulesGuide onClose={() => setShowHelp(false)} />}
       {conquerRegion && (
         <ConquerCardPicker

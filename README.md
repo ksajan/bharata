@@ -29,6 +29,10 @@ rulers, on desktop or phone.
 | **Eight rulers, one rail** | **Phone layout** |
 | ![Eight-player table with compact ruler cards](docs/screenshots/eight-players.webp) | <img src="docs/screenshots/mobile.webp" width="300" alt="Mobile board and command dock"> |
 
+**Action history** — search every turn, filter by ruler or kind, grouped by turn:
+
+![Grouped, searchable action history](docs/screenshots/history.webp)
+
 The **visual language** sheet shows how the digital cues map to the physical pieces:
 
 ![Visual language: pawns, crests, value discs, peg track, terrain, cards](docs/screenshots/visual-language.webp)
@@ -60,6 +64,9 @@ The **visual language** sheet shows how the digital cues map to the physical pie
   and every coin/resource/VP change appears in a short transaction ledger over the board.
 - **Legible tiles** — hover a region for its value, owner and yields; legal marches are gold-lit,
   and the sidebar shows turn order and a drilled VP track.
+- **Action history** — a searchable Chronicle modal (also on phones) with All / My actions /
+  Battles / Events / Resources filters, a ruler filter, and entries grouped by turn. Your own
+  ruler is marked **you**, and co-ruled kingdoms show **shared**.
 - **Stable layout, one motion scale** — the board never resizes when text changes; the coach,
   dock, drawers and overlays share a fixed geometry, and every animation runs on the same
   duration/easing tokens (with reduced-motion support).
@@ -186,8 +193,8 @@ scripts/   simulations, playtest invariants, perf budget, artifact generation
 
 ```bash
 npm run typecheck        # TypeScript, no emit
-npm run test:ui          # 10 Playwright journeys (hot-seat, online, conquer, economy, guidance,
-                         # accessibility, resume, setup, board-geometry stability)
+npm run test:ui          # 13 Playwright journeys (hot-seat, online, conquer, economy, guidance,
+                         # accessibility, resume, setup, board geometry, history, perspective)
 npm run e2e              # socket-level network/e2e checks
 npm run sim              # simulated full games + rule assertions
 npm run sim:invariants   # state invariants after every action
