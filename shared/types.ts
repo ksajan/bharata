@@ -208,10 +208,27 @@ export interface BattleContext {
   }
 }
 
+export interface BattleRecord {
+  id: string
+  round: number
+  regionId: string
+  attackerSeat: string
+  defenderSeat: string
+  attackerTotal: number
+  defenderTotal: number
+  defenderBonus: number
+  winnerSeat: string
+  cards: { seatId: string; armyId: ArmyId; value: number }[]
+}
+
 export interface LogEntry {
   id: number
   text: string
   kind?: 'action' | 'battle' | 'event' | 'gain' | 'turn' | 'system'
+  /** round the line was written in; 0 during setup */
+  round?: number
+  /** set on battle lines so History can attach the full battle record */
+  battleId?: string
 }
 
 export interface GameConfig {
@@ -254,6 +271,7 @@ export interface GameState {
   lastResourceCard: ResourceCardDef | null
   lastEventCard: EventCardDef | null
   lastBattle: BattleContext | null
+  battleHistory: BattleRecord[]
   regions: Record<string, BoardRegionState>
   regionControl: Record<string, string | null> // regionId -> kingdomId
   regionEarnedBy: Record<string, string> // regionId -> seat that earned its VP (for fair VP-steal)

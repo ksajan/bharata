@@ -65,8 +65,9 @@ The **visual language** sheet shows how the digital cues map to the physical pie
 - **Legible tiles** — hover a region for its value, owner and yields; legal marches are gold-lit,
   and the sidebar shows turn order and a drilled VP track.
 - **Action history** — a searchable Chronicle modal (also on phones) with All / My actions /
-  Battles / Events / Resources filters, a ruler filter, and entries grouped by turn. Your own
-  ruler is marked **you**, and co-ruled kingdoms show **shared**.
+  Battles / Events / Resources filters, ruler and round filters, entries grouped by turn, map
+  jumps, archived resource card faces, and **battle records with committed cards + replay**.
+  Your own ruler is marked **you**, and co-ruled kingdoms show **shared**.
 - **Stable layout, one motion scale** — the board never resizes when text changes; the coach,
   dock, drawers and overlays share a fixed geometry, and every animation runs on the same
   duration/easing tokens (with reduced-motion support).
@@ -193,11 +194,12 @@ scripts/   simulations, playtest invariants, perf budget, artifact generation
 
 ```bash
 npm run typecheck        # TypeScript, no emit
-npm run test:ui          # 13 Playwright journeys (hot-seat, online, conquer, economy, guidance,
+npm run test:ui          # 14 Playwright journeys (hot-seat, online, conquer, economy, guidance,
                          # accessibility, resume, setup, board geometry, history, perspective)
 npm run e2e              # socket-level network/e2e checks
 npm run sim              # simulated full games + rule assertions
 npm run sim:invariants   # state invariants after every action
+npm run sim:battles      # a forced battle verifies persisted battle records
 npm run perf             # render + bundle budget (dev server on :5173)
 ```
 

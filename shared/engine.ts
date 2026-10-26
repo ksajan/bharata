@@ -56,8 +56,13 @@ function shuffle<T>(state: GameState, arr: T[]): T[] {
 // Helpers
 // ---------------------------------------------------------------------------
 
-export function log(state: GameState, text: string, kind: GameState['log'][number]['kind'] = 'action') {
-  state.log.push({ id: state.logSeq++, text, kind })
+export function log(
+  state: GameState,
+  text: string,
+  kind: GameState['log'][number]['kind'] = 'action',
+  meta?: { battleId?: string },
+) {
+  state.log.push({ id: state.logSeq++, text, kind, round: state.round, ...(meta?.battleId ? { battleId: meta.battleId } : {}) })
   if (state.log.length > 600) state.log.splice(0, state.log.length - 600)
 }
 
@@ -321,6 +326,8 @@ export function createGame(cfgIn: Partial<GameConfig>, seatInfos: SeatInfo[]): G
     pendingEventPlacement: null,
     lastEventCard: null,
     lastResourceCard: null,
+    lastBattle: null,
+    battleHistory: [],
     log: [],
     logSeq: 1,
     winner: null,
@@ -1184,7 +1191,12 @@ function startBattle(state: GameState, attackerSeat: string, regionId: string, d
     awaiting: [attackerSeat, defenderSeat],
     phase: 'commit',
   }
-  log(state, `⚔ Battle of ${REGIONS[regionId].name}: ${seatOf(state, attackerSeat).name} attacks ${seatOf(state, defenderSeat).name}!`, 'battle')
+  log(
+    state,
+    `⚔ Battle of ${REGIONS[regionId].name}: ${seatOf(state, attackerSeat).name} attacks ${seatOf(state, defenderSeat).name}!`,
+    'battle',
+    { battleId: state.pendingBattle.id },
+  )
 }
 
 function resolveBattle(state: GameState) {
@@ -1253,9 +1265,19 @@ function resolveBattle(state: GameState) {
   if (attackerWins) {
     const tookControl = transferControl(state, battle.regionId, kingdomOf(state, battle.attackerSeat).id, battle.attackerSeat)
     if (tookControl) gainConquestRewards(state, atkSeat, region)
-    log(state, `⚔ ${atkSeat.name} wins the Battle of ${region.name} (${atkTotal} vs ${defTotal}${defBonus ? ` incl. +${defBonus} terrain` : ''})!`, 'battle')
+    log(
+      state,
+      `⚔ ${atkSeat.name} wins the Battle of ${region.name} (${atkTotal} vs ${defTotal}${defBonus ? ` incl. +${defBonus} terrain` : ''})!`,
+      'battle',
+      { battleId: battle.id },
+    )
   } else {
-    log(state, `🛡 ${defSeat.name} holds ${region.name} (${defTotal}${defBonus ? ` incl. +${defBonus} terrain` : ''} vs ${atkTotal})!`, 'battle')
+    log(
+      state,
+      `🛡 ${defSeat.name} holds ${region.name} (${defTotal}${defBonus ? ` incl. +${defBonus} terrain` : ''} vs ${atkTotal})!`,
+      'battle',
+      { battleId: battle.id },
+    )
   }
 
   battle.phase = 'resolved'
@@ -1270,6 +1292,20 @@ function resolveBattle(state: GameState) {
     ],
   }
   state.lastBattle = battle
+  if (!state.battleHistory) state.battleHistory = []
+  state.battleHistory.push({
+    id: battle.id,
+    round: state.round,
+    regionId: battle.regionId,
+    attackerSeat: battle.attackerSeat,
+    defenderSeat: battle.defenderSeat,
+    attackerTotal: atkTotal,
+    defenderTotal: defTotal,
+    defenderBonus: defBonus,
+    winnerSeat,
+    cards: battle.resolved.cards,
+  })
+  if (state.battleHistory.length > 100) state.battleHistory.splice(0, state.battleHistory.length - 100)
   state.pendingBattle = null
   syncOccupation(state)
   checkWin(state)

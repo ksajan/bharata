@@ -1060,7 +1060,17 @@ export function Game(props: {
       {showResourceReveal && state.lastResourceCard && (
         <ResourceRevealModal card={state.lastResourceCard} onClose={() => setSeenCard(cardKey)} />
       )}
-      {showHistory && <HistoryModal state={state} mySeatId={mySeatId} onClose={() => setShowHistory(false)} />}
+      {showHistory && (
+        <HistoryModal
+          state={state}
+          mySeatId={mySeatId}
+          onClose={() => setShowHistory(false)}
+          onSelectRegion={(rid) => {
+            setSelectedRegion(rid)
+            setShowHistory(false)
+          }}
+        />
+      )}
       {showHelp && <RulesGuide onClose={() => setShowHelp(false)} />}
       {conquerRegion && (
         <ConquerCardPicker

@@ -936,7 +936,6 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
 .hist-entry.turn { border-left-color: var(--gold); }
 .hist-dots { display: flex; gap: 3px; padding-top: 5px; min-width: 8px; flex: 0 0 auto; }
 .hist-dots i { width: 7px; height: 7px; border-radius: 50%; display: block; border: 1px solid rgba(23, 16, 11, 0.2); }
-.hist-glyph { width: 13px; text-align: center; color: #95876a; font-size: 12px; padding-top: 1px; flex: 0 0 auto; }
 .hist-text { flex: 1; min-width: 0; }
 .history-empty { text-align: center; color: #6b5638; font-style: italic; padding: 30px 10px; }
 .history-foot {
@@ -974,3 +973,65 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
 .my-court b { color: var(--gold-bright); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
 .my-court-vp { font-family: Georgia, serif; color: #fff; font-weight: 700; margin-right: 2px; }
 .my-court span { display: inline-flex; align-items: center; gap: 3px; }
+
+/* history depth: map links, card faces, battle records */
+.history-head-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.hist-controls select:nth-of-type(2) { flex-basis: 112px; }
+.hist-content { flex: 1; min-width: 0; }
+.hist-line { display: flex; align-items: flex-start; gap: 6px; }
+.hist-line .hist-text { flex: 1; min-width: 0; }
+.hist-map {
+  border: none; background: none; color: var(--teal); padding: 0 3px; font-size: 14px;
+  line-height: 1.1; opacity: 0.75; flex-shrink: 0;
+}
+.hist-map:hover:not(:disabled) { background: none; color: var(--maroon); opacity: 1; }
+
+.hist-card-face {
+  margin: 6px 0 3px; padding: 9px 12px; border: 1px solid #b98a2f; border-radius: 8px;
+  background: linear-gradient(165deg, #fffaf0, var(--parchment-deep)); color: var(--ink);
+  box-shadow: inset 0 0 18px rgba(123, 45, 38, 0.05); max-width: 390px;
+}
+.hist-card-title { font-family: var(--font-display); font-size: 17px; color: var(--maroon); }
+.hist-card-text { font-size: 13px; font-style: italic; color: var(--ink-soft); margin: 1px 0 5px; }
+.hist-card-grants { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.hist-card-grants > div { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.hist-card-label {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: #7a5a1c;
+  font-weight: 700; margin-right: 3px;
+}
+.hist-card-face .grant-chip { font-size: 11.5px; padding: 1px 6px; margin: 1px 2px 0 0; }
+
+.hist-battle { margin: 5px 0 2px; }
+.hist-battle summary {
+  cursor: pointer; font-size: 12.5px; color: #7a5a1c; font-weight: 700; width: fit-content;
+}
+.hist-battle summary:hover { color: var(--maroon); }
+.hist-battle-body {
+  margin-top: 6px; padding: 10px 12px; border: 1px solid rgba(123, 45, 38, 0.3);
+  border-radius: 8px; background: rgba(255, 250, 235, 0.55);
+}
+.hist-battle-meta { display: flex; gap: 6px; font-size: 12px; color: #6b5638; margin-bottom: 4px; }
+.hist-battle-totals { margin: 4px 0 8px; gap: 26px; }
+.hist-battle-totals .n { font-size: 30px; }
+.hist-role { font-size: 11.5px; color: #6b5638; }
+.hist-battle-cards { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 8px; }
+.hist-battle-side { min-width: 130px; }
+.hist-battle-side-head { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink); margin-bottom: 4px; }
+.hist-battle-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.hist-mini-card { width: 40px; height: 56px; font-size: 17px; display: inline-flex; margin: 2px; }
+.hist-mini-card small { font-size: 8.5px; }
+
+.battle-replay-backdrop { z-index: 60; }
+.battle-replay { width: min(620px, 100%); text-align: center; }
+.battle-replay .battle-totals .n { font-size: 42px; }
+.hist-replay-cards { display: flex; gap: 26px; justify-content: center; flex-wrap: wrap; margin: 10px 0 4px; text-align: left; }
+.hist-replay-cards .hist-battle-side-head { justify-content: flex-start; }
+.hist-replay-cards .battle-cards { justify-content: flex-start; }
+
+@media (max-width: 900px) {
+  .history-head-actions { gap: 4px; }
+  .hist-controls select:nth-of-type(2) { flex: 1 0 100%; }
+  .hist-card-face { max-width: none; }
+  .hist-battle-cards { gap: 10px; }
+  .hist-replay-cards { gap: 14px; }
+}
