@@ -14,7 +14,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { KingdomCrest, Pawn, Ship, TerrainMotif, VpTrack } from '../client/ui/art'
+import { KingdomCrest, Pawn, PawnPatterns, Ship, TerrainMotif, VpTrack } from '../client/ui/art'
 import { Ico } from '../client/ui/icons'
 
 const BASE = process.env.BASE || 'http://localhost:5173'
@@ -204,12 +204,6 @@ async function renderVisualSheet() {
   const crests = ['k0', 'k1', 'k2', 'k3', 'k4', 'k5', 'k6', 'k7']
   const crestNames = ['Trident · Kashi', 'Lotus · Kosala', 'Elephant · Magadha', 'Horse · Avanti', 'Bull · Vatsa', 'Sun · Shurasena', 'Bow · Panchala', 'Chakra · Kuru']
 
-  const pawns = colors
-    .map((c, i) =>
-      svgWrap(renderToStaticMarkup(React.createElement(Pawn, { color: c, label: i < 4 ? 'I' : 'II', power: 4 + i })), '-20 -18 40 36', 64, 58),
-    )
-    .join('')
-
   const terrains = (['forest', 'hills', 'fields', 'dunes'] as const)
     .map((k) => svgWrap(renderToStaticMarkup(React.createElement(TerrainMotif, { kind: k, x: 0, y: 2 })), '-24 -20 48 36', 82, 62))
     .join('')
@@ -220,8 +214,14 @@ async function renderVisualSheet() {
     )
     .join('')
 
+  const pawnDefs = renderToStaticMarkup(React.createElement(PawnPatterns))
   const pawnRow = colors
-    .map((c, i) => `<figure class="pawn"><div class="pawn-art">${svgWrap(renderToStaticMarkup(React.createElement(Pawn, { color: c, label: i % 2 ? 'II' : 'I', power: 5 })), '-20 -18 40 36', 74, 64)}</div><figcaption>Seat ${i + 1}</figcaption></figure>`)
+    .map((c, i) => {
+      const art = renderToStaticMarkup(
+        React.createElement(Pawn, { color: c, label: i % 2 ? 'II' : 'I', power: 5, pattern: `seatPat${i}` }),
+      )
+      return `<figure class="pawn"><div class="pawn-art">${svgWrap(`<defs>${pawnDefs}</defs>${art}`, '-20 -18 40 36', 74, 64)}</div><figcaption>Seat ${i + 1}</figcaption></figure>`
+    })
     .join('')
 
   const terrainRow = (['forest', 'hills', 'fields', 'dunes'] as const)

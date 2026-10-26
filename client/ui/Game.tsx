@@ -94,6 +94,25 @@ export function Game(props: {
   }, [error])
 
   useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return
+      const el = e.target as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return
+      if (document.querySelector('.modal-backdrop')) return
+      if (e.key === 'h' || e.key === 'H') {
+        e.preventDefault()
+        setShowHistory(true)
+      }
+      if (e.key === '?') {
+        e.preventDefault()
+        setShowHelp(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  useEffect(() => {
     if (!showRulers) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setShowRulers(false)
@@ -357,10 +376,10 @@ export function Game(props: {
         <button className="small ghost mobile-only" aria-expanded={showRulers} onClick={() => setShowRulers((v) => !v)}>
           Rulers ({Object.keys(state.seats).length})
         </button>
-        <button className="small ghost" onClick={() => setShowHistory(true)}>
+        <button className="small ghost" onClick={() => setShowHistory(true)} title="History (H)">
           History
         </button>
-        <button className="small ghost" onClick={() => setShowHelp(true)}>
+        <button className="small ghost" onClick={() => setShowHelp(true)} title="Rules (?)">
           Rules
         </button>
         <button
@@ -490,7 +509,7 @@ export function Game(props: {
               <br />
               {[
                 ['●', 'black disc = region value (VP = conquer cost = terrain bonus, max +3)'],
-                ['♟', 'wooden pawn = army (I/II, badge = power)'],
+                ['♟', 'wooden pawn = army (I/II, badge = power, pattern = ruler)'],
                 ['⭐', 'capital'], ['🚩', 'fort'], ['❓', 'hidden token'], ['⚓', 'harbor'], ['⭕', 'red discs = disasters'],
               ].map(([i, l]) => (
                 <span key={l} style={{ whiteSpace: 'nowrap', marginRight: 10 }}>
@@ -526,7 +545,11 @@ export function Game(props: {
                 <div
                   key={s.id}
                   className={`player-card ${active ? 'active' : ''} ${compact ? 'compact' : ''}`}
-                  title={coRulers.length ? `Co-ruled with ${coRulers.map((x) => x.name).join(', ')}` : undefined}
+                  title={
+                    coRulers.length
+                      ? `Co-ruled with ${coRulers.map((x) => x.name).join(', ')} — territory and forts are shared; resources, armies and VP are individual.`
+                      : undefined
+                  }
                 >
                   <div className="pc-head">
                     <span className="pc-order" title={`Turn order ${seatIndex + 1}`}>
@@ -536,7 +559,10 @@ export function Game(props: {
                     <span className="pc-name">{s.name}</span>
                     {s.id === mySeatId && <span className="pc-you">you</span>}
                     {coRulers.length > 0 && (
-                      <span className="pc-co" title={`Co-ruled with ${coRulers.map((x) => x.name).join(', ')}`}>
+                      <span
+                        className="pc-co"
+                        title={`Co-ruled with ${coRulers.map((x) => x.name).join(', ')} — territory and forts are shared; resources, armies and VP are individual.`}
+                      >
                         shared
                       </span>
                     )}
