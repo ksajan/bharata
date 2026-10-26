@@ -113,27 +113,64 @@ export function KingdomCrest(props: { seed: string; label?: string; size?: numbe
 
 // ---------------------------------------------------------------------------
 // Wooden army pawn — a Channapatna-style turned piece with a power badge.
+// Seat patterns make ownership readable without relying on colour.
 // ---------------------------------------------------------------------------
 
-export function Pawn(props: { color: string; label: string; power: number; scale?: number }) {
-  const { color, label, power, scale = 1 } = props
+const PAWN_BODY =
+  'M-7.1 9.8 C-7.1 4.4 -6.2 -1.4 -5.8 -4.4 L5.8 -4.4 C6.2 -1.4 7.1 4.4 7.1 9.8 C4.4 11.2 -4.4 11.2 -7.1 9.8 Z'
+
+export function PawnPatterns() {
+  const dark = { stroke: '#2b1c10', strokeWidth: 3, opacity: 0.28, fill: 'none' }
+  const light = { stroke: '#fff8e8', strokeWidth: 1.7, opacity: 0.92, fill: 'none' }
+  return (
+    <>
+      <pattern id="seatPat0" width="9" height="9" patternUnits="userSpaceOnUse">
+        <circle cx="4.5" cy="4.5" r="2.2" fill="#2b1c10" opacity="0.28" />
+        <circle cx="4.5" cy="4.5" r="1.5" fill="#fff8e8" opacity="0.92" />
+      </pattern>
+      <pattern id="seatPat1" width="9" height="9" patternUnits="userSpaceOnUse">
+        <path d="M0 9 L9 0" {...dark} />
+        <path d="M0 9 L9 0" {...light} />
+      </pattern>
+      <pattern id="seatPat2" width="9" height="9" patternUnits="userSpaceOnUse">
+        <path d="M0 4.5 H9 M4.5 0 V9" {...dark} />
+        <path d="M0 4.5 H9 M4.5 0 V9" {...light} />
+      </pattern>
+      <pattern id="seatPat3" width="9" height="9" patternUnits="userSpaceOnUse">
+        <path d="M2.5 0 V9" {...dark} />
+        <path d="M2.5 0 V9" {...light} />
+      </pattern>
+      <pattern id="seatPat4" width="9" height="9" patternUnits="userSpaceOnUse">
+        <path d="M0 2.5 H9" {...dark} />
+        <path d="M0 2.5 H9" {...light} />
+      </pattern>
+      <pattern id="seatPat5" width="9" height="9" patternUnits="userSpaceOnUse">
+        <path d="M0 2.5 L4.5 6.5 L9 2.5" {...dark} />
+        <path d="M0 2.5 L4.5 6.5 L9 2.5" {...light} />
+      </pattern>
+      <pattern id="seatPat6" width="9" height="9" patternUnits="userSpaceOnUse">
+        <path d="M0 0 H9 M0 4.5 H9 M0 9 H9" {...dark} />
+        <path d="M0 4.5 H9" {...light} />
+      </pattern>
+      <pattern id="seatPat7" width="9" height="9" patternUnits="userSpaceOnUse">
+        <circle cx="4.5" cy="4.5" r="2.9" fill="none" stroke="#2b1c10" strokeWidth="2.8" opacity="0.26" />
+        <circle cx="4.5" cy="4.5" r="2.4" fill="none" stroke="#fff8e8" strokeWidth="1.5" opacity="0.9" />
+      </pattern>
+    </>
+  )
+}
+
+export function Pawn(props: { color: string; label: string; power: number; scale?: number; pattern?: string }) {
+  const { color, label, power, scale = 1, pattern } = props
   return (
     <g transform={`scale(${scale})`}>
       {/* ground shadow */}
       <ellipse cx={0} cy={11} rx={9} ry={3.2} fill="rgba(38, 22, 8, 0.38)" />
       {/* turned body */}
-      <path
-        d="M-7.1 9.8 C-7.1 4.4 -6.2 -1.4 -5.8 -4.4 L5.8 -4.4 C6.2 -1.4 7.1 4.4 7.1 9.8 C4.4 11.2 -4.4 11.2 -7.1 9.8 Z"
-        fill={color}
-        stroke="#2b1c10"
-        strokeWidth={1.1}
-      />
-      {/* left-lit highlight */}
-      <path
-        d="M-3.9 8.8 C-4.2 4 -4 0 -3.4 -3.3 L-1.4 -3.3 C-2 -0.4 -2.2 3.8 -1.8 8.6 Z"
-        fill="rgba(255, 250, 235, 0.34)"
-        pointerEvents="none"
-      />
+      <path d={PAWN_BODY} fill={color} stroke="#2b1c10" strokeWidth={1.1} />
+      {pattern && <path d={PAWN_BODY} fill={`url(#${pattern})`} pointerEvents="none" />}
+      {/* small specular glint; the seat pattern carries the texture */}
+      <ellipse cx={-3.2} cy={-1.2} rx={1.1} ry={3.2} fill="rgba(255, 250, 235, 0.22)" pointerEvents="none" />
       {/* top knob */}
       <ellipse cx={0} cy={-4.6} rx={6} ry={2.7} fill={color} stroke="#2b1c10" strokeWidth={1} />
       <ellipse cx={-1} cy={-5} rx={3.2} ry={1.2} fill="rgba(255, 250, 235, 0.4)" pointerEvents="none" />

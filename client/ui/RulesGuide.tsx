@@ -1,8 +1,17 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { ABILITIES, PERSONALITIES } from '../../shared/data'
 import { Ico } from './icons'
 
 export function RulesGuide(props: { onClose?: () => void }) {
+  useEffect(() => {
+    if (!props.onClose) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') props.onClose?.()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [props.onClose])
+
   return (
     <div className="modal-backdrop" onClick={props.onClose}>
       <div className="modal rules-guide" onClick={(e) => e.stopPropagation()}>
@@ -22,7 +31,7 @@ export function RulesGuide(props: { onClose?: () => void }) {
           <li>
             <b>Resource</b> — draw & flip one resource card; <i>every</i> ruler gains what it grants. Then (only
             you): sell resources for coins (2 resources = 1 coin), sell trade objects for 2 coins each if you
-            rule an export harbor ⚓, and recruit army cards (3 coins each) into Army I or II.
+            rule an export harbor ⚓, and recruit army cards (2 coins each by default) into your army.
           </li>
           <li>
             <b>Actions</b> — take 2 free actions (extras cost 1 coin):
@@ -61,11 +70,12 @@ export function RulesGuide(props: { onClose?: () => void }) {
           <span>Mahajanapada = a Great Kingdom (paid in army cards) · Province = paid in coins</span>
         </p>
 
-        <h3>Your two armies</h3>
+        <h3>Your armies</h3>
         <p>
-          Each ruler commands two armies as separate battle hands — Army I starts with your two beginning
-          cards, Army II starts empty until you reinforce it. If an army loses all its cards it is destroyed,
-          and respawns at your capital when you reinforce it again. Lose your capital? Retake it first.
+          In a 2–4 ruler game each ruler commands two armies as separate battle hands — Army I starts with your
+          two beginning cards, Army II starts empty until you reinforce it. In a 5–8 ruler game partners co-rule
+          a kingdom and each commands one army. If an army loses all its cards it is destroyed, and respawns at
+          your capital when you reinforce it again. Lose your capital? Retake it first.
         </p>
 
         <h3>Your ruler (drafted at setup)</h3>
@@ -92,11 +102,24 @@ export function RulesGuide(props: { onClose?: () => void }) {
           ))}
         </div>
 
+        <h3>Co-ruled kingdoms (5–8 rulers)</h3>
+        <p>
+          At a table of five or more, rulers are paired into the four kingdoms. Co-rulers <b>share the realm</b>:
+          its territory, its forts and the right to conquer from it. Everything personal stays personal — your
+          coins, resources, army cards, armies, abilities and <b>victory points</b>. A conquest by either partner
+          expands the shared realm, but the VP belongs to the ruler who earned it; seizing a shared region steals
+          that ruler’s VP. The ruler cards mark this with a <b>shared</b> chip and name the partner.
+        </p>
+
         <h3>Play modes</h3>
         <p>
           <b>Same Screen</b> — pass one device around the table (2–8 rulers; with 5–8, partners co-rule a
-          kingdom, each commanding one army). <b>Online</b> — one ruler hosts a room, shares the 4-letter code,
-          and everyone plays live from their own browser.
+          kingdom, each commanding one army). <b>Online</b> — one ruler hosts a room, shares the 5-character
+          code, and everyone plays live from their own browser.
+        </p>
+        <p className="hint">
+          Shortcuts: <b>H</b> opens History, <b>?</b> opens this guide, <b>Esc</b> closes overlays. History is
+          searchable by ruler, round and kind; battle rows expand into the committed cards and a replay.
         </p>
         <p className="hint">Learn as you play — every screen tells you what to do next, and the Rules button is always in the top bar.</p>
 

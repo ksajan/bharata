@@ -74,7 +74,10 @@ The **visual language** sheet shows how the digital cues map to the physical pie
 - **Survives real life** — same-screen games resume after a refresh; online seats rejoin.
 - **Playable on phones** — responsive menu and setup, a Rulers drawer, zoomable board.
 - **Keyboard and screen-reader support** — arrow keys walk the hex lattice, Enter selects, Esc
-  clears; regions and the chronicle are announced.
+  clears; regions and the chronicle are announced. In-game shortcuts: **H** History, **?** Rules.
+- **Colour-blind-safe armies** — every army pawn carries a seat pattern as well as colour, and
+  player cards keep a crest + turn-order chip. Co-ruled kingdoms are marked **shared** and explain
+  what is shared (territory, forts) versus personal (resources, armies, VP).
 
 ---
 
@@ -136,7 +139,7 @@ turn).
 | Physical component | Web adaptation |
 | --- | --- |
 | Painted map of ancient India | 38-region hex atlas (16 Mahajanapadas + provinces) with terrain derived from each region's yields, rivers, harbours, ships and sea labels |
-| Handmade Channapatna armies | Wooden-pawn pieces in seat colours with an army numeral and a dark power badge |
+| Handmade Channapatna armies | Wooden-pawn pieces with a seat colour **and a seat pattern**, an army numeral and a dark power badge |
 | Player trackers with peg holes | Ruler cards with a kingdom crest and a drilled VP track |
 | Black value discs / blue harbour markers / red disaster tokens | Region value badges, harbour trade accents, disaster tokens; gold `?` marks hidden tokens |
 | Army cards, personality cards, prize deck | Gold-framed parchment cards, personality emblems, wax-seal reveals |
@@ -194,7 +197,7 @@ scripts/   simulations, playtest invariants, perf budget, artifact generation
 
 ```bash
 npm run typecheck        # TypeScript, no emit
-npm run test:ui          # 14 Playwright journeys (hot-seat, online, conquer, economy, guidance,
+npm run test:ui          # 15 Playwright journeys (hot-seat, online, conquer, economy, guidance,
                          # accessibility, resume, setup, board geometry, history, perspective)
 npm run e2e              # socket-level network/e2e checks
 npm run sim              # simulated full games + rule assertions

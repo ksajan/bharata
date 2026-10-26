@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { HEX_SIZE, REGIONS, RIVER_PATHS, hexCenter, hexPolygon } from '../../shared/data'
 import type { GameState } from '../../shared/types'
 import { EVENT_GLYPHS, ICON_SHAPES, type IconKind } from './icons'
-import { Pawn, Ship, TerrainMotif, type TerrainKind } from './art'
+import { Pawn, PawnPatterns, Ship, TerrainMotif, type TerrainKind } from './art'
 import type { GameFx } from './fx'
 
 type Box = { x: number; y: number; w: number; h: number }
@@ -274,6 +274,7 @@ export const Board = React.memo(function Board(props: {
           <feTurbulence type="fractalNoise" baseFrequency="0.012 0.015" numOctaves="3" seed="7" stitchTiles="stitch" result="w" />
           <feDisplacementMap in="SourceGraphic" in2="w" scale="6" />
         </filter>
+        <PawnPatterns />
         <radialGradient id="badge" cx="35%" cy="30%" r="80%">
           <stop offset="0%" stopColor="#a84a38" />
           <stop offset="100%" stopColor="#6e1f14" />
@@ -480,7 +481,13 @@ export const Board = React.memo(function Board(props: {
                   transform={`translate(${c.x + spread}, ${c.y + 1})`}
                   pointerEvents="none"
                 >
-                  <Pawn color={seatColor(a.seatId)} label={a.armyId === 1 ? 'I' : 'II'} power={power} scale={1.06} />
+                  <Pawn
+                    color={seatColor(a.seatId)}
+                    label={a.armyId === 1 ? 'I' : 'II'}
+                    power={power}
+                    scale={1.06}
+                    pattern={`seatPat${(Number(a.seatId.replace(/\D/g, '')) || 0) % 8}`}
+                  />
                 </g>
               )
             })}
