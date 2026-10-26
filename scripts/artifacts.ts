@@ -135,6 +135,14 @@ async function main() {
   await menu.locator('g.region').nth(6).click()
   await menu.waitForTimeout(350)
   await save(menu, 'region')
+
+  // full, grouped action history
+  await menu.getByRole('button', { name: 'History', exact: true }).click()
+  await menu.waitForTimeout(500)
+  await save(menu, 'history')
+  await menu.locator('.history-modal').getByRole('button', { name: 'Close' }).click()
+  await menu.waitForTimeout(300)
+
   await menu.keyboard.press('Escape') // clear the selected-region ring for a clean hero
   await menu.waitForTimeout(300)
 
