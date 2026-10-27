@@ -40,31 +40,152 @@ const CREST_ART: Record<CrestId, React.ReactNode> = {
   ),
   lotus: (
     <>
-      <path fill="currentColor" d="M12 21c-4.4-2.4-6.6-6-5.7-10 2.6 1 4.6 3.4 5.7 6.4 1.1-3 3.1-5.4 5.7-6.4.9 4-1.3 7.6-5.7 10Z" />
-      <path fill="currentColor" opacity="0.85" d="M12 17.5c-2.4-2-3.2-5-2.6-8 2 .8 3.3 2.8 3.8 5.2.5-2.4 1.8-4.4 3.8-5.2.6 3-.2 6-2.6 8Z" />
-      <path {...STROKE} d="M5 21h14" />
+      {/* side petals open the bloom outwards */}
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.12}
+        d="M12 16.4C8.2 16.8 5 15 4 11.8c3-.8 6 .6 8 3"
+      />
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.12}
+        d="M12 16.4c3.8.4 7-1.4 8-4.6-3-.8-6 .6-8 3"
+      />
+      {/* upper outer petals */}
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.14}
+        d="M12 16.2C8.6 14.6 6.8 11.4 7.4 7.8c2.8 1.2 4.2 3.8 4.6 6.6"
+      />
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.14}
+        d="M12 16.2c3.4-1.6 5.2-4.8 4.6-8.4-2.8 1.2-4.2 3.8-4.6 6.6"
+      />
+      {/* inner petals and bud */}
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.18}
+        d="M12 15.8c-2-2-2.6-4.8-1.6-7.4 1.2 1.8 1.6 4 1.6 6.2"
+      />
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.18}
+        d="M12 15.8c2-2 2.6-4.8 1.6-7.4-1.2 1.8-1.6 4-1.6 6.2"
+      />
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.3}
+        d="M12 15.6c-1-2.2-.8-4.6 0-6.8.8 2.2 1 4.6 0 6.8Z"
+      />
+      <ellipse cx="12" cy="13.9" rx="1.9" ry="1.2" fill="currentColor" />
+      <path {...STROKE} d="M12 15.2v.8M10.3 14.6l-.6.6M13.7 14.6l.6.6" strokeWidth={0.8} />
+      <path {...STROKE} d="M12 16.4v2.1" strokeWidth={1.2} />
+      <path {...STROKE} d="M4.6 20.5c4.8-1.8 9.8-1.8 14.8 0" strokeWidth={1.1} />
     </>
   ),
   elephant: (
     <>
-      <path fill="currentColor" d="M5 20c-1.2-.6-1.6-2.2-.7-3.3-2.4-2.8-2.2-7 .4-9.4C7.2 5.1 10.6 5.2 13 7c2.6 2 3.4 5.4 2.6 8.6l-.7 2.7c-.2.8-1.2 1-1.7.3l-1-1.5-1.6 3H7.3L5 20Z" />
-      <path {...STROKE} d="M6 19c-1.6 1.2-1.4 3 .6 3.4M16.6 9.8h2.6l1.6-1.5" />
-      <circle cx="15.4" cy="9.4" r="0.9" fill="#f4e7c8" />
-      <path fill="currentColor" opacity="0.55" d="M8.4 8.2c2.4-1 5.2-.6 7 1.2-2.6.6-4.8.4-7-1.2Z" />
+      {/* fan ears; the inner folds keep them from reading as petals */}
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.18}
+        d="M8.8 7.6C5.2 6.7 3.7 9.2 4.2 12.4c.4 2.9 2 4.5 4.6 4.1 1.1-.2 1.9-1 2.2-2.1"
+      />
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.18}
+        d="M15.2 7.6c3.6-.9 5.1 1.6 4.6 4.8-.4 2.9-2 4.5-4.6 4.1-1.1-.2-1.9-1-2.2-2.1"
+      />
+      <path {...STROKE} d="M7.8 9.8c-1.4-.2-2.2.8-2 2.1M16.2 9.8c1.4-.2 2.2.8 2 2.1" strokeWidth={1.1} />
+      {/* domed forehead */}
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.14}
+        d="M8.8 7.2C8.8 4.9 10.1 3.3 12 3.3s3.2 1.6 3.2 3.9v3.5c0 2.1-1.3 3.5-3.2 3.5s-3.2-1.4-3.2-3.5V7.2Z"
+      />
+      <path {...STROKE} d="M9.8 5.1c.8-.7 2.2-.7 3 0" strokeWidth={1} />
+      {/* trunk curls to one side like a living elephant, not a straight line */}
+      <path
+        {...STROKE}
+        d="M11.6 13.8c.4 2.4 1.4 4.2 3 5.2 1.2.8 2.4.4 2.8-.8.3-1-.2-1.8-1.2-2.2"
+        strokeWidth={2}
+      />
+      <path {...STROKE} d="M12.6 15.3c.2 1.6.9 2.9 2 3.6" strokeWidth={1} />
+      {/* tusks */}
+      <path {...STROKE} d="M10.2 14.2c-1 1.9-.8 3.6.4 4.6M13.8 14.2c1 1.9.8 3.6-.4 4.6" strokeWidth={1.9} />
+      <circle cx="10.4" cy="8.2" r="0.65" fill="currentColor" />
+      <circle cx="13.6" cy="8.2" r="0.65" fill="currentColor" />
     </>
   ),
   horse: (
     <>
-      <path fill="currentColor" d="M5.4 21c.3-2.6 1.2-4.8 3-6.4l-1.6-2.2 1.2-3.6 3.2-1 1.4-3.2 2.2 1.6 1 3.4 2.8 2.6-1.4 2.4-2.8-.6-.7 7h-3.1l.2-5.2-1.3.2-1.2 5H5.4Z" />
-      <circle cx="14.2" cy="7.6" r="0.8" fill="#f4e7c8" />
-      <path {...STROKE} d="M10.4 12.4c1.2.8 2.6.8 3.8 0" strokeWidth={1.2} />
+      {/* mane flows down the back of the neck */}
+      <path
+        fill="currentColor"
+        opacity={0.24}
+        d="M10.8 8.2c2.4-.4 4.2 1.2 5 3.6l1 6.2 1.6 2-2.4.4-1.2-6.4c-.8-2.8-2.2-4.8-4-5.8Z"
+      />
+      <path {...STROKE} d="M12.4 9.4c1.6.8 2.6 2.4 3 4.6M13.6 9.8c1.4 1 2.2 2.8 2.4 4.8" strokeWidth={1} />
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.08}
+        d="M5.2 14.4c-.4-1.6.2-3 1.4-3.8L7.2 7.4c.2-.8 1-1 1.4-.2l1 1.6 1.2-.6c2.8-.4 4.8 1.6 5.6 4.4l1.6 7.2-3.4.4-1.4-5.4c-1.2-.6-2.2-1.6-3-2.8L9.4 14.6l.2 2.2H6.4c-.6-.6-1-1.4-1.2-2.4Z"
+      />
+      {/* two ears and a forelock */}
+      <path {...STROKE} d="M7.2 7.4C7 6 7.6 5.2 8.6 5.4l1 3.4" strokeWidth={1.3} />
+      <path {...STROKE} d="M9.6 8.8c.2-1.6 1-2.4 2-2l.4 3" strokeWidth={1.2} />
+      <path {...STROKE} d="M9.8 6.2c.4-.8 1-.8 1.4 0" strokeWidth={1} />
+      {/* muzzle, eye, nostril */}
+      <path {...STROKE} d="M5.4 14.4c.8.6 1.8.8 2.8.4" strokeWidth={1.2} />
+      <circle cx="9" cy="10.4" r="0.65" fill="currentColor" />
+      <circle cx="6.2" cy="14" r="0.5" fill="currentColor" />
     </>
   ),
   bull: (
     <>
-      <path fill="currentColor" d="M7 14.6c0-2 1.2-3.6 3.2-4.2V8l-2.6-2.6L5 3.4l3.6.6 2.4 2.6L12 8l1-1.4 2.4-2.6 3.6-.6-2.6 2-2.6 2.6v2.4c2 .6 3.2 2.2 3.2 4.2 0 1.2-.6 2.2-1.6 3L15 21h-2l-1-2-1 2H9l-1.4-3c-1-.8-1.6-1.8-1.6-3Z" />
-      <circle cx="9.6" cy="14.2" r="0.8" fill="#f4e7c8" />
-      <circle cx="14.4" cy="14.2" r="0.8" fill="#f4e7c8" />
+      {/* zebu hump and sweeping horns */}
+      <path {...STROKE} d="M6.8 8.2C7 4.6 9.2 2.4 12 2.4s5 2.2 5.2 5.8" strokeWidth={1.4} />
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.14}
+        d="M8.4 7.2C5.8 6.9 3.6 5.5 2.4 3.1c2.6.1 4.8 1.2 6.4 3.2"
+      />
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.14}
+        d="M15.6 7.2c2.6-.3 4.8-1.7 6-4.1-2.6.1-4.8 1.2-6.4 3.2"
+      />
+      {/* head and ears */}
+      <path
+        {...STROKE}
+        fill="currentColor"
+        fillOpacity={0.08}
+        d="M8.2 8.8c0-2 1.4-3.4 3.8-3.4s3.8 1.4 3.8 3.4v3.6c0 2.6-1.6 4.4-3.8 4.4s-3.8-1.8-3.8-4.4V8.8Z"
+      />
+      <path {...STROKE} d="M8.2 9.6c-1.8 0-3 1-3 2.4 0 1 .8 1.6 2 1.4" />
+      <path {...STROKE} d="M15.8 9.6c1.8 0 3 1 3 2.4 0 1-.8 1.6-2 1.4" />
+      {/* broad muzzle */}
+      <ellipse cx="12" cy="14.8" rx="2.9" ry="1.6" fill="currentColor" opacity={0.2} />
+      <path {...STROKE} d="M9.4 14.2c1.2.6 4 .6 5.2 0" strokeWidth={1.1} />
+      <circle cx="10.9" cy="14.8" r="0.45" fill="currentColor" />
+      <circle cx="13.1" cy="14.8" r="0.45" fill="currentColor" />
+      <circle cx="10" cy="8.6" r="0.6" fill="currentColor" />
+      <circle cx="14" cy="8.6" r="0.6" fill="currentColor" />
+      <path {...STROKE} d="M9.2 16.6c-.8 1.2-1 2.6-.4 3.8M14.8 16.6c.8 1.2 1 2.6.4 3.8" strokeWidth={1} />
     </>
   ),
   sun: (
@@ -78,9 +199,14 @@ const CREST_ART: Record<CrestId, React.ReactNode> = {
   ),
   bow: (
     <>
-      <path {...STROKE} d="M5 3c7 0 12 4.4 12 9s-5 9-12 9" />
-      <path {...STROKE} d="M5 3v18" strokeWidth={1.1} />
-      <path {...STROKE} d="M9 12h10M16 9.5 19 12l-3 2.5" />
+      {/* recurve stave with tip curls */}
+      <path {...STROKE} d="M9.2 3.2c-1-.6-2.1 0-1.8 1.2" strokeWidth={1.4} />
+      <path {...STROKE} d="M7.4 4.4C4.6 6.2 3.2 9 3.2 12s1.4 5.8 4.2 7.6" />
+      <path {...STROKE} d="M7.4 19.6c-.3 1.2.8 1.8 1.8 1.2" strokeWidth={1.4} />
+      {/* string, nock and arrow */}
+      <path {...STROKE} d="M7.4 4.4 9.4 12 7.4 19.6" strokeWidth={1} />
+      <path {...STROKE} d="M9.4 12H21M18.4 9.6 21 12l-2.6 2.4M9.4 12l-1.6-1.4M9.4 12l-1.6 1.4" strokeWidth={1.35} />
+      <path {...STROKE} d="M3.2 10.4v3.2" strokeWidth={1.2} />
     </>
   ),
   chakra: (
@@ -221,16 +347,33 @@ export function TerrainMotif(props: { kind: TerrainKind; x: number; y: number; s
         </g>
       )}
       {kind === 'fields' && (
-        <g stroke="#a8842e" strokeWidth={1.5} strokeLinecap="round">
-          <path d="M-10 2 Q0 -1 10 2" fill="none" />
-          <path d="M-10 6 Q0 3 10 6" fill="none" opacity={0.85} />
-          <path d="M-10 10 Q0 7 10 10" fill="none" opacity={0.7} />
+        <g strokeLinecap="round" strokeLinejoin="round">
+          {/* two paddy plots, separated by a bund and drained by a channel */}
+          <path d="M-13 4.5 -2 2 1 10 -11 13.5Z" fill="#c9cf8a" opacity={0.66} stroke="#8a6a2e" strokeWidth={1} />
+          <path d="M0 2.5 10 1 12.5 9 2 11Z" fill="#d8c27a" opacity={0.66} stroke="#8a6a2e" strokeWidth={1} />
+          <path d="M-10 6.4Q-5 4.8 0 5.4M-10.5 9.1Q-5 7.5 0 8.1" stroke="#6f8a3a" strokeWidth={1.35} fill="none" />
+          <path d="M3 4.1Q7 3 11 4M3.5 6.6Q7 5.6 11 6.6" stroke="#6f8a3a" strokeWidth={1.25} fill="none" />
+          <path d="M-13 4.5-11 13.5M10 1l2.5 8" stroke="#7a5a24" strokeWidth={1.3} fill="none" />
+          <path d="M-13 4.5-2 2M0 2.5 10 1" stroke="#7a5a24" strokeWidth={1.3} fill="none" />
+          {[
+            [-8, 6.4], [-4, 5.6], [0, 5.4],
+            [4.5, 4.4], [8, 3.8], [10, 4.4],
+          ].map(([x, y], i) => (
+            <path key={i} d={`M${x} ${y}v-1.4M${x} ${y}l-1-1M${x} ${y}l1-1`} stroke="#4f6a2a" strokeWidth={1.05} fill="none" />
+          ))}
+          <path d="M-13 13.8Q0 16 12.5 12.8" stroke="#5f8a8a" strokeWidth={1.4} fill="none" opacity={0.8} />
         </g>
       )}
       {kind === 'dunes' && (
-        <g stroke="#b07f3e" strokeWidth={1.5} strokeLinecap="round" fill="none">
-          <path d="M-11 3 C-5 -2 3 -2 10 3" />
-          <path d="M-9 8 C-3 3 5 3 11 8" opacity={0.75} />
+        <g strokeLinecap="round" strokeLinejoin="round">
+          {/* two crescent dunes: long windward slopes, sharp crests, slip-face shadow */}
+          <path d="M-13.5 8.4C-9.4 4.2-3.4 2.4 2.4 4.2L4.4 7.4C-1 5.8-6.8 7-11 10.8Z" fill="#d9b26a" opacity={0.58} stroke="#a9753d" strokeWidth={1} />
+          <path d="M-11 10.8C-5.8 6.8 1.2 5.8 7.4 8.2L8.8 11.6C2 9-4.4 10-9.6 13.6Z" fill="#e0ba75" opacity={0.7} stroke="#a9753d" strokeWidth={1} />
+          <path d="M-13.5 8.4C-9.4 4.2-3.4 2.4 2.4 4.2" stroke="#7d5222" strokeWidth={1.4} fill="none" />
+          <path d="M-11 10.8C-5.8 6.8 1.2 5.8 7.4 8.2" stroke="#7d5222" strokeWidth={1.5} fill="none" />
+          <path d="M7.4 8.2 8.8 11.6C4 10-1 10.4-5.8 12.2L-9.6 13.6C-4.4 10 2 9 8.8 11.6" fill="#a9753d" opacity={0.3} />
+          <path d="M-10 12.4C-5.4 9.6 0 9 5 10.2" stroke="#b07f3e" strokeWidth={1} opacity={0.8} fill="none" />
+          <path d="M-9 6.2C-6 4.8-2.4 4.6 1 5.6" stroke="#f4e7c8" strokeWidth={0.9} opacity={0.65} fill="none" />
         </g>
       )}
     </g>

@@ -11,7 +11,7 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 
 const BASE = process.env.BASE || 'http://localhost:5173'
-const OUT = path.resolve('docs/screenshots/turn-v2.gif')
+const OUT = path.resolve('docs/screenshots/turn-v3.mp4')
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'bharata-demo-'))
 
 async function main() {
@@ -44,33 +44,33 @@ async function main() {
   // draw, reveal, sell
   const drawMark = Date.now()
   await page.locator('.next-step button').first().click()
-  await page.waitForTimeout(700)
+  await page.waitForTimeout(900)
   const take = page.getByRole('button', { name: 'Take the bounty' })
   if (await take.isVisible().catch(() => false)) await take.click()
-  await page.waitForTimeout(300)
+  await page.waitForTimeout(650)
   const sell = page.getByRole('button', { name: /Sell all/ })
   if (await sell.isEnabled().catch(() => false)) await sell.click()
-  await page.waitForTimeout(700)
+  await page.waitForTimeout(900)
 
   // march
   await page.locator('.controls').getByRole('button', { name: 'To Actions →' }).click()
-  await page.waitForTimeout(450)
+  await page.waitForTimeout(600)
   await page.locator('.army-box').first().click()
-  await page.waitForTimeout(450)
+  await page.waitForTimeout(600)
   const target = page.locator('g.region.moveable:not(.maha)').first()
   const move = (await target.count()) ? target : page.locator('g.region.moveable').first()
   if (await move.count()) {
     await move.click()
-    await page.waitForTimeout(900)
+    await page.waitForTimeout(1200)
   }
 
   // conquer if a province is available
   const conquer = page.getByRole('button', { name: /Conquer/ })
   if (await conquer.isEnabled().catch(() => false)) {
     await conquer.click()
-    await page.waitForTimeout(1100)
+    await page.waitForTimeout(1400)
   }
-  await page.waitForTimeout(1200)
+  await page.waitForTimeout(1600)
   const endMark = Date.now()
 
   const video = page.video()
@@ -80,7 +80,7 @@ async function main() {
   const src = await video?.path()
   if (!src) throw new Error('no video recorded')
   const start = Math.max(0, (drawMark - started) / 1000 - 0.2)
-  const seconds = Math.min(8, (endMark - drawMark) / 1000)
+  const seconds = Math.min(16, (endMark - drawMark) / 1000)
   execFileSync('ffmpeg', [
     '-y',
     '-loglevel',
@@ -92,14 +92,23 @@ async function main() {
     '-i',
     src,
     '-vf',
-    'fps=10,scale=800:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=96[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3',
-    '-loop',
-    '0',
+    'fps=30,scale=1280:-2:flags=lanczos',
+    '-c:v',
+    'libx264',
+    '-preset',
+    'slow',
+    '-crf',
+    '23',
+    '-pix_fmt',
+    'yuv420p',
+    '-movflags',
+    '+faststart',
+    '-an',
     OUT,
   ])
   fs.rmSync(TMP, { recursive: true, force: true })
-  const kb = Math.round(fs.statSync(OUT).size / 1024)
-  console.log(`✓ turn-v2.gif (${kb} kB)`)
+  const mb = (fs.statSync(OUT).size / 1024 / 1024).toFixed(2)
+  console.log(`✓ turn-v3.mp4 (${mb} MB, ${seconds.toFixed(1)} s)`)
 }
 
 main().catch((e) => {
