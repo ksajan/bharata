@@ -1,6 +1,8 @@
 # भारत · BHARATA 600 BC — Online
 
-![The painted board of Bharata, fully zoomed out](docs/screenshots/focus.webp)
+<video src="https://github.com/user-attachments/assets/2fe8c7de-086c-49b0-95dc-d3a567b40d81" controls autoplay loop muted playsinline width="100%" poster="https://raw.githubusercontent.com/ksajan/bharata/main/docs/screenshots/board.webp"></video>
+
+**[▶ Watch the eight-second gameplay clip](https://github.com/user-attachments/assets/2fe8c7de-086c-49b0-95dc-d3a567b40d81)** — draw the land’s bounty, sell the surplus, march into Pragjyotisha and take a province.
 
 A faithful browser adaptation of **Bharata 600 BC** — the strategy board game of the 16
 Mahajanapadas. Draw the bounty of the land, coin it into armies, conquer provinces and Great
@@ -36,13 +38,6 @@ rulers, on desktop or phone.
 The **visual language** sheet shows how the digital cues map to the physical pieces:
 
 ![Visual language: pawns, crests, value discs, peg track, terrain, cards](docs/screenshots/visual-language.webp)
-
-<details>
-<summary><b>Watch a turn</b> — draw, sell, march, conquer</summary>
-
-![Animated turn: resource card, sale ledger, march trail and conquest](docs/screenshots/turn-v2.gif)
-
-</details>
 
 ---
 
@@ -140,6 +135,8 @@ turn).
 
 ![Component cues](docs/screenshots/visual-language.webp)
 
+![Crest and terrain study: trident, lotus, elephant, horse, bull, sun, bow, chakra, and the four terrains](docs/screenshots/crest-study.webp)
+
 | Physical component | Web adaptation |
 | --- | --- |
 | Painted map of ancient India | 38-region hex atlas (16 Mahajanapadas + provinces) with terrain derived from each region's yields, rivers, harbours, ships and sea labels |
@@ -158,8 +155,12 @@ Channapatna wooden pieces, cream peg trackers and colour-coded illustrated cards
 publisher's component photography and the designers' notes on the art, then translated the
 *visual cues* — not the artwork — into vector form:
 
-- **Land** is tinted by its yield (forest for wood, ridges for iron, field rows for food, dunes for
-  arid), with rivers and harbours drawn in ink.
+- **Land** is tinted by its yield (forest for wood, ridges for iron, paddy plots for food, crescent
+  dunes for arid), with rivers and harbours drawn in ink. Fields carry bunds, furrows and rice
+  tufts; dunes have a sharp crest, slip-face shadow and wind ripples.
+- **Crests** are drawn as small line-built seals that still read at ruler-card size: an open lotus
+  with a seed pod, a fan-eared elephant, a Marwari horse head, a humped zebu bull and a strung
+  recurve bow. The 96/40/18 px study is generated from the same components as the game.
 - **Sea** is a pale blue-green wash with wave hatching, two sailing ships and spaced
   `ARABIAN SEA` / `BAY OF BENGAL` labels.
 - **Values** are black discs with cream numerals, as on the printed board.
@@ -245,8 +246,13 @@ This captures the real UI at 2× into `docs/screenshots/*.webp` and renders the 
 from the same React art components the game uses. Requires `cwebp` (from `webp`).
 
 ```bash
-npm run demo   # records the short turn GIF (requires ffmpeg)
+npm run demo       # records docs/screenshots/turn-v3.mp4 (requires ffmpeg)
+npm run art:study  # renders the crest + terrain study from the React art
 ```
+
+The README video is a GitHub user-attachment (so github.com serves it with the right MIME type and
+the inline player works). Upload a fresh `turn-v3.mp4` as a comment/issue attachment to replace it,
+then update the two URLs in the video block above.
 
 ---
 

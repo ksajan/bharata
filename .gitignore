@@ -23,3 +23,8 @@ npm-debug.log*
 
 # local audit scratch
 .audit/
+
+# generated hero clip; README embeds the GitHub attachment
+docs/screenshots/turn-v3.mp4
+
+# generated media (the README uses a GitHub user-attachment for the video)

@@ -20,7 +20,8 @@
     "perf": "node scripts/perf.mjs",
     "artifacts": "tsx scripts/artifacts.ts",
     "demo": "tsx scripts/demo.ts",
-    "sim:battles": "tsx scripts/playtest/battle-history.ts"
+    "sim:battles": "tsx scripts/playtest/battle-history.ts",
+    "art:study": "tsx scripts/crest-study.ts"
   },
   "dependencies": {
     "express": "^4.19.2",
