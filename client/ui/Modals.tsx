@@ -418,7 +418,7 @@ export function PrizeModal(props: { state: GameState; onChoose: (i: number) => v
 // Game over
 // ---------------------------------------------------------------------------
 
-export function GameOverModal(props: { state: GameState; onAgain: () => void; onLeave: () => void }) {
+export function GameOverModal(props: { state: GameState; onAgain: () => void; onLeave: () => void; canAgain?: boolean }) {
   const standings = Object.values(props.state.seats).sort((a, b) => b.vp - a.vp)
   return (
     <div className="modal-backdrop lite">
@@ -453,9 +453,11 @@ export function GameOverModal(props: { state: GameState; onAgain: () => void; on
           </tbody>
         </table>
         <div className="btn-row" style={{ justifyContent: 'center' }}>
-          <button className="primary" onClick={props.onAgain}>
-            Play Again
-          </button>
+          {props.canAgain !== false && (
+            <button className="primary" onClick={props.onAgain}>
+              Play Again
+            </button>
+          )}
           <button className="ghost" onClick={props.onLeave}>
             Leave the Table
           </button>

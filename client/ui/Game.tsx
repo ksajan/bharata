@@ -19,6 +19,8 @@ import {
   eventTargetsFor,
 } from './Modals'
 
+const EMOTES = ['👋', '👍', '🔥', '😮', '😅', '🙏', '⚔️', '👑']
+
 export function Game(props: {
   transport: Transport
   state: GameState
@@ -33,6 +35,8 @@ export function Game(props: {
   const [focusBoard, setFocusBoard] = useState(false)
   const [showRulers, setShowRulers] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [showEmotes, setShowEmotes] = useState(false)
+  const [emotes, setEmotes] = useState<{ id: string; seatId: string; name: string; emote: string }[]>([])
   const [sell, setSell] = useState({ iron: 0, wood: 0, food: 0, trade: 0 })
   const [conquerRegion, setConquerRegion] = useState<string | null>(null)
   const [revealDismissed, setRevealDismissed] = useState<string | null>(null)
@@ -186,6 +190,25 @@ export function Game(props: {
     send({ type: 'endTurn' })
   }, [state.actionsLeft, confirmEnd, send])
 
+  // online quick emotes
+  useEffect(() => {
+    const off = transport.onEmote?.((e) => {
+      const id = `${e.at}-${e.seatId}-${Math.random().toString(36).slice(2, 7)}`
+      setEmotes((cur) => [...cur.slice(-4), { id, seatId: e.seatId, name: e.name, emote: e.emote }])
+      setTimeout(() => setEmotes((cur) => cur.filter((x) => x.id !== id)), 2800)
+    })
+    return () => off?.()
+  }, [transport])
+
+  const sendEmote = async (emote: string) => {
+    setShowEmotes(false)
+    try {
+      await transport.sendEmote?.(emote)
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+
   // derive short-lived visual cues from real state transitions
   useEffect(() => {
     const prev = prevStateRef.current
@@ -326,7 +349,10 @@ export function Game(props: {
   // exactly one recommended action for the current state — the coach strip
   const nextStep: { text: string; action?: { label: string; run: () => void } } = (() => {
     if (state.phase === 'gameover') return { text: 'The age is decided.' }
-    if (state.phase === 'draft') return { text: 'Choose your ruler’s persona to begin the age.' }
+    if (state.phase === 'draft')
+      return me
+        ? { text: 'Choose your ruler’s persona to begin the age.' }
+        : { text: 'The rulers are choosing their personas.' }
     if (state.pendingBattle) return { text: 'A battle awaits secret commitments.' }
     if (state.pendingPrize) return { text: 'A ruler is choosing a victory prize.' }
     if (!me) return { text: 'Watching the court — pick a side.' }
@@ -354,7 +380,7 @@ export function Game(props: {
       {/* ---------- top bar ---------- */}
       <div className="topbar">
         <div className="logo">भारत · BHARATA</div>
-        {roomCode && <div className="pill">Room {roomCode}</div>}
+        {roomCode && <div className="pill room-pill">Room {roomCode}</div>}
         <div className="pill">{state.round === 0 ? 'Setup' : `Round ${state.round}`}</div>
         <div className="phase-steps">
           {['Resource', 'Actions', 'Events'].map((p, i) => (
@@ -376,6 +402,17 @@ export function Game(props: {
         <button className="small ghost mobile-only" aria-expanded={showRulers} onClick={() => setShowRulers((v) => !v)}>
           Rulers ({Object.keys(state.seats).length})
         </button>
+        {transport.mode === 'online' && mySeatId && (
+          <button
+            className="small ghost emote-btn"
+            onClick={() => setShowEmotes((v) => !v)}
+            title="Emote"
+            aria-label="Emote"
+            aria-expanded={showEmotes}
+          >
+            ☺
+          </button>
+        )}
         <button className="small ghost" onClick={() => setShowHistory(true)} title="History (H)">
           History
         </button>
@@ -396,6 +433,17 @@ export function Game(props: {
       </div>
 
       {turnToast && <div className="turn-toast" role="status">{turnToast}</div>}
+      {emotes.length > 0 && (
+        <div className="emote-stack" aria-live="polite">
+          {emotes.map((e) => (
+            <div key={e.id} className="emote-toast">
+              <span className="emote-dot" style={{ background: state.seats[e.seatId]?.color }} />
+              <b>{e.name}</b>
+              <span className="emote-glyph">{e.emote}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showRulers && <div className="drawer-scrim" onClick={() => setShowRulers(false)} />}
       <div className="game-main">
@@ -1070,12 +1118,13 @@ export function Game(props: {
         <BattleRevealModal state={state} onDismiss={() => setRevealDismissed(revealKey)} />
       )}
       {evtActive && <EventModal state={state} mySeatId={mySeatId ?? ''} onTarget={(rid) => send({ type: 'placeEventTarget', regionId: rid })} onSeer={() => send({ type: 'useAbility', ability: 'seer' })} />}
-      {state.pendingPrize && (
+      {state.pendingPrize && state.pendingPrize.seatId === mySeatId && (
         <PrizeModal state={state} onChoose={(i) => send({ type: 'choosePrize', optionIndex: i })} />
       )}
       {state.phase === 'gameover' && (
         <GameOverModal
           state={state}
+          canAgain={hotseat || transport.isHost}
           onAgain={() => {
             if (hotseat) onLeave()
             else transport.reset().catch(() => {})
@@ -1085,6 +1134,18 @@ export function Game(props: {
       )}
       {showResourceReveal && state.lastResourceCard && (
         <ResourceRevealModal card={state.lastResourceCard} onClose={() => setSeenCard(cardKey)} />
+      )}
+      {showEmotes && (
+        <>
+          <div className="emote-scrim" onClick={() => setShowEmotes(false)} />
+          <div className="emote-menu" role="menu" aria-label="Emotes">
+            {EMOTES.map((em) => (
+              <button key={em} role="menuitem" className="emote-option" onClick={() => sendEmote(em)}>
+                {em}
+              </button>
+            ))}
+          </div>
+        </>
       )}
       {showHistory && (
         <HistoryModal

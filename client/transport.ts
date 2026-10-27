@@ -22,6 +22,11 @@ export interface Transport {
   onError(cb: (message: string) => void): void
   /** hot-seat only: fires with the *full* engine state after every action */
   onSnapshot?(cb: (state: GameState) => void): void
+  /** online only: enter a room as a spectator */
+  watch?(code: string): Promise<void>
+  /** online only: quick table emotes */
+  sendEmote?(emote: string): Promise<void>
+  onEmote?(cb: (e: { seatId: string; name: string; emote: string; at: number }) => void): () => void
   create(name: string): Promise<void>
   join(code: string, name: string): Promise<void>
   setConfig(cfg: Partial<GameConfig>): Promise<void>
@@ -128,6 +133,7 @@ export class OnlineTransport implements Transport {
   private roomCbs: ((r: LobbySnapshot | null) => void)[] = []
   private stateCbs: ((s: GameState | null) => void)[] = []
   private errorCbs: ((m: string) => void)[] = []
+  private emoteCbs: ((e: { seatId: string; name: string; emote: string; at: number }) => void)[] = []
   private lastView: GameState | null = null
   private undoMark: UndoMark | null = null
 
@@ -143,6 +149,9 @@ export class OnlineTransport implements Transport {
     })
     this.socket.on('actionError', (e: { message: string }) => {
       this.errorCbs.forEach((cb) => cb(e.message))
+    })
+    this.socket.on('emote', (e: { seatId: string; name: string; emote: string; at: number }) => {
+      this.emoteCbs.forEach((cb) => cb(e))
     })
   }
 
@@ -167,6 +176,23 @@ export class OnlineTransport implements Transport {
   }
   onError(cb: (m: string) => void) {
     this.errorCbs.push(cb)
+  }
+  onEmote(cb: (e: { seatId: string; name: string; emote: string; at: number }) => void) {
+    this.emoteCbs.push(cb)
+    return () => {
+      this.emoteCbs = this.emoteCbs.filter((x) => x !== cb)
+    }
+  }
+
+  async watch(code: string) {
+    const res = await this.emit('room:watch', { code })
+    this.code = res.code ?? code.toUpperCase()
+    this.seatId = null
+    this.isHost = false
+  }
+
+  async sendEmote(emote: string) {
+    await this.emit('room:emote', { emote })
   }
 
   async create(name: string) {

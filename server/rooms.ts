@@ -12,6 +12,7 @@ export interface PlayerConn {
   connected: boolean
   token: string
   disconnectedAt: number | null
+  lastEmoteAt?: number
 }
 
 export interface UndoSnapshot {
@@ -24,6 +25,7 @@ export interface UndoSnapshot {
 export interface Room {
   code: string
   players: PlayerConn[] // seat order
+  watchers: Set<string> // socket ids of spectators
   hostKey: string
   cfg: Partial<GameConfig>
   state: GameState | null
@@ -73,6 +75,7 @@ export class RoomManager {
     const room: Room = {
       code,
       players: [],
+      watchers: new Set(),
       hostKey,
       cfg: {},
       state: null,
