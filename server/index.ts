@@ -9,6 +9,9 @@ import { GameError } from '../shared/engine'
 import { sanitizeState } from '../shared/engine'
 import type { GameAction } from '../shared/types'
 
+const EMOTES = new Set(['👋', '👍', '🔥', '😮', '😅', '🙏', '⚔️', '👑'])
+const EMOTE_COOLDOWN_MS = 1500
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = process.env.PORT || 3001
 // cross-origin socket access is closed by default (the server serves its own client);
@@ -44,6 +47,9 @@ setInterval(() => {
         if (p.socketId) {
           io.to(p.socketId).emit('state', sanitizeState(room.state, p.seatId))
         }
+      }
+      for (const watcherId of room.watchers) {
+        io.to(watcherId).emit('state', sanitizeState(room.state, null))
       }
     }
   }
@@ -90,6 +96,11 @@ io.on('connection', (socket) => {
         if (room.state) io.to(p.socketId).emit('state', sanitizeState(room.state, p.seatId))
         else io.to(p.socketId).emit('state', null)
       }
+    }
+    // spectators get the same lobby and a seat-less, secret-free view
+    for (const watcherId of room.watchers) {
+      io.to(watcherId).emit('room', lobby)
+      io.to(watcherId).emit('state', room.state ? sanitizeState(room.state, null) : null)
     }
   }
 
@@ -141,10 +152,51 @@ io.on('connection', (socket) => {
     }
   })
 
+  socket.on('room:watch', ({ code }: { code: string }, ack?: (r: unknown) => void) => {
+    try {
+      if (tooManyFailures(socket.handshake.address)) throw new GameError('Too many failed attempts — wait a minute')
+      const room = manager.getRoom(code)
+      if (!room) {
+        recordFailure(socket.handshake.address)
+        throw new GameError('Room not found')
+      }
+      room.watchers.add(socket.id)
+      data.roomCode = room.code
+      data.seatId = null
+      socket.join(room.code)
+      ack?.({ ok: true, code: room.code })
+      broadcastRoom(room.code)
+    } catch (e) {
+      recordFailure(socket.handshake.address)
+      ack?.({ ok: false, error: (e as Error).message })
+    }
+  })
+
+  socket.on('room:emote', ({ emote }: { emote: string }, ack?: (r: unknown) => void) => {
+    try {
+      const room = data.roomCode ? manager.getRoom(data.roomCode) : null
+      if (!room) throw new GameError('Not in a room')
+      if (!data.seatId) throw new GameError('Spectators cannot emote')
+      if (!EMOTES.has(emote)) throw new GameError('Unknown emote')
+      const player = room.players.find((p) => p.seatId === data.seatId)
+      if (!player) throw new GameError('You are not seated')
+      const now = Date.now()
+      if (player.lastEmoteAt && now - player.lastEmoteAt < EMOTE_COOLDOWN_MS) {
+        throw new GameError('Easy there — one emote every couple of seconds')
+      }
+      player.lastEmoteAt = now
+      io.to(room.code).emit('emote', { seatId: player.seatId, name: player.name, emote, at: now })
+      ack?.({ ok: true })
+    } catch (e) {
+      ack?.({ ok: false, error: (e as Error).message })
+    }
+  })
+
   socket.on('game:undo', (_: unknown, ack?: (r: unknown) => void) => {
     try {
       const room = data.roomCode ? manager.getRoom(data.roomCode) : null
       if (!room || !room.state) throw new GameError('No game running')
+      if (!data.seatId) throw new GameError('Spectators cannot act')
       manager.undoMove(room, data.playerKey)
       ack?.({ ok: true })
       broadcastRoom(room.code)
@@ -199,6 +251,7 @@ io.on('connection', (socket) => {
     try {
       const room = data.roomCode ? manager.getRoom(data.roomCode) : null
       if (!room || !room.state) throw new GameError('No game running')
+      if (!data.seatId) throw new GameError('Spectators cannot act')
       manager.applyAction(room, data.playerKey, action)
       ack?.({ ok: true })
       broadcastRoom(room.code)
@@ -213,6 +266,8 @@ io.on('connection', (socket) => {
     if (!data.roomCode) return
     const room = manager.getRoom(data.roomCode)
     if (!room) return
+    room.watchers.delete(socket.id)
+    if (!data.seatId) return
     const player = room.players.find((p) => p.socketId === socket.id)
     if (player) {
       player.connected = false

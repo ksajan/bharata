@@ -50,7 +50,8 @@ The **visual language** sheet shows how the digital cues map to the physical pie
 
 - **2–8 rulers** — 2–4 solo kingdoms; 5–8 as co-ruled kingdoms sharing four thrones.
 - **Two ways to play** — pass-and-play on one screen, or online rooms with a 5-character code,
-  seat reclaim after a refresh, and automatic state sync.
+  seat reclaim after a refresh, and automatic state sync. A third friend can **watch** a live room
+  without taking a seat.
 - **The full game** — resource deck, selling and harbour trade, army cards and forging, movement,
   conquest, secret simultaneous battle commits, forts, VP-stealing conquests, prize conditions,
   disasters, abilities and hidden tokens.
@@ -71,6 +72,9 @@ The **visual language** sheet shows how the digital cues map to the physical pie
 - **Stable layout, one motion scale** — the board never resizes when text changes; the coach,
   dock, drawers and overlays share a fixed geometry, and every animation runs on the same
   duration/easing tokens (with reduced-motion support).
+- **Table social** — eight quick emotes (👋 👍 🔥 😮 😅 🙏 ⚔️ 👑) with a per-seat cooldown, broadcast
+  to every seat and watcher. Watchers see the same live table through a seat-less, secret-free view
+  and cannot act or emote. There is no free-text chat.
 - **Survives real life** — same-screen games resume after a refresh; online seats rejoin.
 - **Playable on phones** — responsive menu and setup, a Rulers drawer, zoomable board.
 - **Keyboard and screen-reader support** — arrow keys walk the hex lattice, Enter selects, Esc
@@ -197,9 +201,10 @@ scripts/   simulations, playtest invariants, perf budget, artifact generation
 
 ```bash
 npm run typecheck        # TypeScript, no emit
-npm run test:ui          # 15 Playwright journeys (hot-seat, online, conquer, economy, guidance,
-                         # accessibility, resume, setup, board geometry, history, perspective)
-npm run e2e              # socket-level network/e2e checks
+npm run test:ui          # 16 Playwright journeys (hot-seat, online, conquer, economy, guidance,
+                         # accessibility, resume, setup, board geometry, history, perspective,
+                         # spectator + emotes)
+npm run e2e              # socket-level network/e2e checks (rejoin, spectator, emote cooldown)
 npm run sim              # simulated full games + rule assertions
 npm run sim:invariants   # state invariants after every action
 npm run sim:battles      # a forced battle verifies persisted battle records

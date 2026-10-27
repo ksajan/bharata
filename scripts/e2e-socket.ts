@@ -112,9 +112,31 @@ async function main() {
   const st3 = await waitForState(guest2)
   assert(st3 && st3.phase === 'action', 'rejoined client receives live state')
 
+  // spectator: watch the live room without a seat; cannot act or emote
+  const watcher = client()
+  await new Promise((r) => watcher.on('connect', r))
+  const watcherStateP = waitForState(watcher)
+  const watched = await emit(watcher, 'room:watch', { code })
+  assert(watched.ok, 'watcher enters the room without a seat')
+  const wst = await watcherStateP
+  assert(wst && wst.phase === 'action', 'watcher receives live state')
+  const watchedAct = await emit(watcher, 'game:action', { action: { type: 'drawResource' } })
+  assert(!watchedAct.ok, 'watcher cannot act')
+
+  const emoteP = new Promise<any>((resolve) => watcher.once('emote', resolve))
+  const emoteRes = await emit(host, 'room:emote', { emote: '👋' })
+  assert(emoteRes.ok, 'host sends an emote')
+  const emoteEvt = await emoteP
+  assert(emoteEvt && emoteEvt.emote === '👋' && emoteEvt.seatId === 's0', 'watcher receives the emote')
+  const fastEmote = await emit(host, 'room:emote', { emote: '🔥' })
+  assert(!fastEmote.ok, 'emote cooldown rejects a second emote')
+  const watcherEmote = await emit(watcher, 'room:emote', { emote: '👋' })
+  assert(!watcherEmote.ok, 'watcher cannot emote')
+
   host.disconnect()
   guest2.disconnect()
   guestBad.disconnect()
+  watcher.disconnect()
   console.log(fails.length === 0 ? '✅ NETWORK E2E PASSED' : `❌ ${fails.length} network checks failed`)
   process.exit(fails.length === 0 ? 0 : 1)
 }

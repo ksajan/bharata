@@ -138,6 +138,21 @@ export default function App() {
 
   const startHotseat = () => setScreen('hotseat-setup')
 
+  const watchOnline = async () => {
+    setError(null)
+    const t = new OnlineTransport()
+    attach(t)
+    try {
+      await t.watch(joinCode.toUpperCase())
+      setScreen('lobby')
+    } catch (e) {
+      setError((e as Error).message)
+      t.dispose()
+      transportRef.current = null
+      setTransport(null)
+    }
+  }
+
   const resumeHotseat = () => {
     const snap = loadHotseat()
     if (!snap) {
@@ -181,6 +196,7 @@ export default function App() {
           onHotseat={startHotseat}
           onOnlineCreate={() => startOnline(true)}
           onOnlineJoin={() => startOnline(false)}
+          onWatch={watchOnline}
           onRejoin={rejoinLast}
           rejoinCode={lastSeat()?.code ?? null}
           resume={resumeInfo}
@@ -283,6 +299,7 @@ function MenuScreen(props: {
   onHotseat: () => void
   onOnlineCreate: () => void
   onOnlineJoin: () => void
+  onWatch: () => void
   onRejoin: () => void
   rejoinCode: string | null
   resume: { names: string[]; round: number } | null
@@ -348,6 +365,9 @@ function MenuScreen(props: {
           />
           <button className="primary" onClick={props.onOnlineJoin} disabled={props.joinCode.length < 4}>
             Join
+          </button>
+          <button className="ghost" onClick={props.onWatch} disabled={props.joinCode.length < 4} title="Watch without taking a seat">
+            Watch
           </button>
         </div>
         <div className="menu-form" style={{ justifyContent: 'center' }}>

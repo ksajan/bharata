@@ -782,13 +782,14 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   .board-controls { top: 6px; right: 6px; transform: scale(0.92); transform-origin: top right; }
   .board-stage.is-focus .board-controls { right: 10px; top: 10px; }
   .game.focus-board .board-stage .board-controls { transform: none; }
-  .topbar { padding: 6px 10px; gap: 4px 10px; height: 57px; min-height: 57px; max-height: 57px; align-content: center; }
+  .topbar { padding: 6px 10px; gap: 4px 6px; height: 57px; min-height: 57px; max-height: 57px; align-content: center; }
+  .topbar .room-pill { display: none; }
   .topbar .logo { display: none; }
   .topbar .vp-target { display: none; }
   .phase-steps { display: none; }
   .topbar .turn-banner { order: 10; flex-basis: 100%; text-align: left; font-size: 14px; }
   .topbar .pill { font-size: 12px; padding: 3px 9px; }
-  .topbar button.small { padding: 3px 8px; font-size: 12px; }
+  .topbar button.small { padding: 3px 7px; font-size: 12px; }
   .phase-step { font-size: 11px; padding: 2px 7px; }
   .player-card { font-size: 13px; }
   .player-card .pc-armies, .player-card .pc-traits { display: none; }
@@ -1034,4 +1035,40 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   .hist-card-face { max-width: none; }
   .hist-battle-cards { gap: 10px; }
   .hist-replay-cards { gap: 14px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Quick emotes + spectator
+--------------------------------------------------------------------------- */
+.emote-btn { font-size: 16px; line-height: 1; padding: 3px 8px; }
+.emote-scrim { position: fixed; inset: 0; z-index: 55; }
+.emote-menu {
+  position: fixed; top: 52px; right: 150px; z-index: 60;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
+  padding: 9px; border: 1px solid var(--gold); border-radius: 12px;
+  background: linear-gradient(165deg, #241a11, #17100b);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6); animation: rise-in var(--dur-2) var(--ease-standard);
+}
+.emote-option {
+  font-size: 21px; line-height: 1; padding: 5px 7px; border-radius: 8px;
+  border: 1px solid #4d3a22; background: rgba(255, 250, 235, 0.05); min-width: 38px;
+}
+.emote-option:hover:not(:disabled) { background: var(--maroon); border-color: var(--gold-bright); }
+.emote-stack {
+  position: fixed; left: 14px; bottom: 178px; z-index: 58; display: flex; flex-direction: column;
+  gap: 4px; pointer-events: none;
+}
+.emote-toast {
+  display: flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px;
+  border: 1px solid var(--gold); background: rgba(23, 16, 11, 0.92); color: #e8dcc2;
+  font-size: 13px; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  animation: rise-in var(--dur-2) var(--ease-standard);
+}
+.emote-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.emote-glyph { font-size: 18px; line-height: 1; }
+
+@media (max-width: 900px) {
+  .emote-menu { top: 62px; right: 10px; }
+  .emote-stack { bottom: 156px; left: 8px; }
+  .emote-toast { font-size: 12px; padding: 3px 8px; }
 }
