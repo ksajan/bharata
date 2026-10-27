@@ -91,7 +91,7 @@ async function main() {
   const png = path.join(TMP, 'study.png')
   await page.screenshot({ path: png, fullPage: true })
   await browser.close()
-  execFileSync('cwebp', ['-quiet', '-q', '88', png, OUT])
+  execFileSync('cwebp', ['-quiet', '-q', '88', png, '-o', OUT])
   fs.rmSync(TMP, { recursive: true, force: true })
   console.log(`✓ ${path.relative(process.cwd(), OUT)} (${Math.round(fs.statSync(OUT).size / 1024)} kB)`)
 }
