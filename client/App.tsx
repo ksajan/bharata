@@ -7,6 +7,7 @@ import {
   clearHotseat,
   hotseatSeatNames,
   lastSeat,
+  lastWatch,
   loadHotseat,
   saveHotseat,
   type LobbySnapshot,
@@ -127,7 +128,7 @@ export default function App() {
     try {
       if (create) await t.create(name || 'Host')
       else await t.join(joinCode.toUpperCase(), name || 'Ruler')
-      setScreen('lobby')
+      setScreen((cur) => (cur === 'game' ? 'game' : 'lobby'))
     } catch (e) {
       setError((e as Error).message)
       t.dispose()
@@ -144,7 +145,7 @@ export default function App() {
     attach(t)
     try {
       await t.watch(joinCode.toUpperCase())
-      setScreen('lobby')
+      setScreen((cur) => (cur === 'game' ? 'game' : 'lobby'))
     } catch (e) {
       setError((e as Error).message)
       t.dispose()
@@ -167,6 +168,23 @@ export default function App() {
       .catch((e) => setError((e as Error).message))
   }
 
+  const watchLast = async () => {
+    const code = lastWatch()
+    if (!code) return
+    setError(null)
+    const t = new OnlineTransport()
+    attach(t)
+    try {
+      await t.watch(code)
+      setScreen((cur) => (cur === 'game' ? 'game' : 'lobby'))
+    } catch (e) {
+      setError((e as Error).message)
+      t.dispose()
+      transportRef.current = null
+      setTransport(null)
+    }
+  }
+
   const rejoinLast = async () => {
     const seat = lastSeat()
     if (!seat) return
@@ -175,7 +193,7 @@ export default function App() {
     attach(t)
     try {
       await t.rejoin(seat.code)
-      setScreen('lobby')
+      setScreen((cur) => (cur === 'game' ? 'game' : 'lobby'))
     } catch (e) {
       setError((e as Error).message)
       t.dispose()
@@ -197,6 +215,8 @@ export default function App() {
           onOnlineCreate={() => startOnline(true)}
           onOnlineJoin={() => startOnline(false)}
           onWatch={watchOnline}
+          onWatchLast={watchLast}
+          watchCode={lastWatch()}
           onRejoin={rejoinLast}
           rejoinCode={lastSeat()?.code ?? null}
           resume={resumeInfo}
@@ -300,6 +320,8 @@ function MenuScreen(props: {
   onOnlineCreate: () => void
   onOnlineJoin: () => void
   onWatch: () => void
+  onWatchLast: () => void
+  watchCode: string | null
   onRejoin: () => void
   rejoinCode: string | null
   resume: { names: string[]; round: number } | null
@@ -374,6 +396,11 @@ function MenuScreen(props: {
           {props.rejoinCode && (
             <button className="ghost" style={{ flex: 1 }} onClick={props.onRejoin}>
               ↻ Rejoin room {props.rejoinCode}
+            </button>
+          )}
+          {props.watchCode && (
+            <button className="ghost" style={{ flex: 1 }} onClick={props.onWatchLast} title="Watch again without taking a seat">
+              ◎ Watch room {props.watchCode}
             </button>
           )}
           <button className="ghost" style={{ flex: 1 }} onClick={props.onGuide}>

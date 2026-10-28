@@ -62,10 +62,10 @@ const PERSONALITIES = ['merchant_prince','iron_raja','granary_keeper','war_eleph
 const AB = Object.keys(ABILITIES) as (keyof typeof ABILITIES)[]
 
 for (let g = 0; g < 4; g++) {
-  const state = createGame({ advanced: true, vpTarget: 12 }, Array.from({ length: 4 }, (_, i) => ({ id: `s${i}`, name: `P${i}` })))
+  const state = createGame({ advanced: true, vpTarget: 5 }, Array.from({ length: 4 }, (_, i) => ({ id: `s${i}`, name: `P${i}` })))
   for (let i = 0; i < 4; i++) handleAction(state, `s${i}`, { type: 'draft', personality: PERSONALITIES[i], abilities: [AB[i % AB.length], AB[(i + 1) % AB.length]] })
   let t = 0
-  while (state.phase !== "gameover" && t < 120) {
+  while (state.phase !== "gameover" && t < 400) {
     t++
     const sid = state.activeSeat
     const s = state.seats[sid]
@@ -113,6 +113,9 @@ for (let g = 0; g < 4; g++) {
         if (!step || !tryA(state, sid, { type: 'moveArmy', armyId: army.armyId, to: step })) { tryA(state, sid, { type: 'endTurn' }); break }
       }
     }
+    // Safety harness: if the probe's chosen action path left the active seat idle,
+    // close the turn so the invariant run can reach game over instead of spinning.
+    if (state.activeSeat === sid && state.phase === 'action') tryA(state, sid, { type: 'endTurn' })
     let inner = 0
     while ((state.pendingEventPlacement || state.pendingPrize) && state.phase !== 'gameover' && inner++ < 8) {
       if (state.pendingEventPlacement) {

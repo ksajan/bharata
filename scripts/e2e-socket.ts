@@ -10,6 +10,8 @@ function assert(cond: boolean, msg: string) {
 
 const URL = process.env.E2E_URL ?? 'http://localhost:3001'
 
+const stateHistory = new WeakMap<Socket, any[]>()
+
 function client(key?: string) {
   const s = io(URL, {
     auth: { playerKey: key ?? `pk-${Math.random().toString(36).slice(2)}` },
@@ -25,6 +27,12 @@ function client(key?: string) {
     console.error('❌ could not connect to server on :3001 — is `npm run serve` running?')
     process.exit(1)
   })
+  const history: any[] = []
+  stateHistory.set(s, history)
+  s.on('state', (st) => {
+    history.push(st)
+    if (history.length > 20) history.shift()
+  })
   return s
 }
 
@@ -34,13 +42,24 @@ function emit<T extends Ack>(socket: ReturnType<typeof io>, event: string, paylo
   )
 }
 
-function waitForState(socket: ReturnType<typeof io>, timeout = 6000): Promise<any> {
+function waitForState(
+  socket: ReturnType<typeof io>,
+  predicate: (s: any) => boolean = () => true,
+  timeout = 6000,
+): Promise<any> {
+  const history = stateHistory.get(socket) ?? []
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (predicate(history[i])) return Promise.resolve(history[i])
+  }
   return new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('state timeout')), timeout)
-    socket.once('state', (s) => {
+    const onState = (s: any) => {
+      if (!predicate(s)) return
       clearTimeout(t)
+      socket.off('state', onState)
       resolve(s)
-    })
+    }
+    socket.on('state', onState)
   })
 }
 
@@ -70,19 +89,19 @@ async function main() {
   assert(!guestStart.ok, 'non-host cannot start')
 
   await emit(host, 'room:start', {})
-  const st1 = await waitForState(guest)
+  const st1 = await waitForState(guest, (st) => st?.phase === 'draft')
   assert(st1 && st1.phase === 'draft', 'game started, phase=draft, broadcast received')
   assert(st1.armyDeck.every((c: any) => c.id === '__hidden'), 'deck contents hidden from clients')
 
   // drafts
   await emit(host, 'game:action', { action: { type: 'draft', personality: 'iron_raja', abilities: ['physician', 'seer'] } })
   await emit(guest, 'game:action', { action: { type: 'draft', personality: 'war_elephants', abilities: ['strategist', 'quartermaster'] } })
-  const st2 = await waitForState(guest)
+  const st2 = await waitForState(guest, (st) => st?.phase === 'resource')
   assert(st2.phase === 'resource', 'draft complete → resource phase')
 
   // host plays resource phase
   await emit(host, 'game:action', { action: { type: 'drawResource' } })
-  let st = await waitForState(host)
+  let st = await waitForState(host, (st) => st?.resourceCardDrawn === true)
   assert(st.resourceCardDrawn === true, 'resource card drawn over network')
   assert(st.lastResourceCard && typeof st.lastResourceCard.title === 'string', 'resource card face is public')
 
@@ -92,7 +111,7 @@ async function main() {
 
   await emit(host, 'game:action', { action: { type: 'sellResources', resources: { iron: 2 } } })
   await emit(host, 'game:action', { action: { type: 'endResource' } })
-  st = await waitForState(host)
+  st = await waitForState(host, (st) => st?.phase === 'action')
   assert(st.phase === 'action', 'host in action phase')
 
   // move army I to a neighbor
@@ -100,7 +119,7 @@ async function main() {
   const { REGIONS } = await import('../shared/data')
   const neigh = REGIONS[army.regionId].neighbors[0]
   await emit(host, 'game:action', { action: { type: 'moveArmy', armyId: 1, to: neigh } })
-  st = await waitForState(host)
+  st = await waitForState(host, (s) => s?.armies?.some((a: any) => a.ownerId === 's0' && a.armyId === 1 && a.regionId === neigh))
   const movedArmy = st.armies.find((a: any) => a.ownerId === 's0' && a.armyId === 1)
   assert(movedArmy.regionId === neigh, `army I moved to ${neigh} over the network`)
 
@@ -111,13 +130,13 @@ async function main() {
   await new Promise((r) => guest2.on('connect', r))
   const rejoined = await emit(guest2, 'room:join', { code, name: 'Bindusara' })
   assert(rejoined.ok && rejoined.seatId === 's1', 'guest reconnects into same seat')
-  const st3 = await waitForState(guest2)
+  const st3 = await waitForState(guest2, (st) => st?.phase === 'action')
   assert(st3 && st3.phase === 'action', 'rejoined client receives live state')
 
   // spectator: watch the live room without a seat; cannot act or emote
   const watcher = client()
   await new Promise((r) => watcher.on('connect', r))
-  const watcherStateP = waitForState(watcher)
+  const watcherStateP = waitForState(watcher, (st) => st?.phase === 'action')
   const watched = await emit(watcher, 'room:watch', { code })
   assert(watched.ok, 'watcher enters the room without a seat')
   const wst = await watcherStateP

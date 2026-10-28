@@ -202,11 +202,14 @@ scripts/   simulations, playtest invariants, perf budget, artifact generation
 
 ```bash
 npm run typecheck        # TypeScript, no emit
-npm run test:ui          # 20 Playwright journeys (hot-seat, online, conquer, economy, guidance,
+npm run test:ui          # 22 Playwright journeys (hot-seat, online, conquer, economy, guidance,
                          # accessibility, resume, setup, board geometry, history, perspective,
-                         # spectator + emotes, tablet/landscape, battle handoff, prize hover, final table)
-npm run e2e              # socket e2e: rejoin, spectator, emote cooldown, lobby security
+                         # spectator + emotes, tablet/landscape, battle handoff, prize hover, final table,
+                         # deterministic menu/board visual snapshots + browser smoke)
+npm run e2e              # socket e2e: rejoin, spectator, emote cooldown, lobby security, 6-room soak
 npm run e2e:security     # lobby does not expose hostKey; no second socket seat takeover
+npm run e2e:soak         # independent multi-room create/join/start/draft/action
+npm run test:browsers    # Chromium + WebKit smoke
 npm run sim              # simulated full games + rule assertions
 npm run sim:invariants   # state invariants after every action
 npm run sim:battles      # a forced battle verifies persisted battle records

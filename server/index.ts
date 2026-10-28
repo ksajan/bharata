@@ -139,8 +139,8 @@ io.on('connection', (socket) => {
       data.roomCode = room.code
       data.seatId = player.seatId
       socket.join(room.code)
-      ack?.({ ok: true, code: room.code, seatId: player.seatId, token: player.token })
       broadcastRoom(room.code)
+      ack?.({ ok: true, code: room.code, seatId: player.seatId, token: player.token })
     } catch (e) {
       ack?.({ ok: false, error: (e as Error).message })
     }
@@ -158,8 +158,8 @@ io.on('connection', (socket) => {
       data.roomCode = room.code
       data.seatId = player.seatId
       socket.join(room.code)
-      ack?.({ ok: true, code: room.code, seatId: player.seatId, token: player.token })
       broadcastRoom(room.code)
+      ack?.({ ok: true, code: room.code, seatId: player.seatId, token: player.token })
     } catch (e) {
       if (!throttled) recordFailure(socket.handshake.address)
       ack?.({ ok: false, error: (e as Error).message })
@@ -177,8 +177,8 @@ io.on('connection', (socket) => {
       data.roomCode = found.room.code
       data.seatId = found.player.seatId
       socket.join(found.room.code)
-      ack?.({ ok: true, code: found.room.code, seatId: found.player.seatId })
       broadcastRoom(found.room.code)
+      ack?.({ ok: true, code: found.room.code, seatId: found.player.seatId })
     } catch (e) {
       ack?.({ ok: false, error: (e as Error).message })
     }
@@ -197,8 +197,8 @@ io.on('connection', (socket) => {
       data.roomCode = room.code
       data.seatId = null
       socket.join(room.code)
-      ack?.({ ok: true, code: room.code })
       broadcastRoom(room.code)
+      ack?.({ ok: true, code: room.code })
     } catch (e) {
       if (!throttled) recordFailure(socket.handshake.address)
       ack?.({ ok: false, error: (e as Error).message })
@@ -231,8 +231,8 @@ io.on('connection', (socket) => {
       if (!room || !room.state) throw new GameError('No game running')
       if (!data.seatId) throw new GameError('Spectators cannot act')
       manager.undoMove(room, data.playerKey)
-      ack?.({ ok: true })
       broadcastRoom(room.code)
+      ack?.({ ok: true })
     } catch (e) {
       ack?.({ ok: false, error: (e as Error).message })
     }
@@ -245,8 +245,8 @@ io.on('connection', (socket) => {
       if (room.hostKey !== data.playerKey) throw new GameError('Only the host can change settings')
       if (room.state) throw new GameError('Game already started')
       room.cfg = sanitizeCfg({ ...room.cfg, ...cfg })
-      ack?.({ ok: true })
       broadcastRoom(room.code)
+      ack?.({ ok: true })
     } catch (e) {
       ack?.({ ok: false, error: (e as Error).message })
     }
@@ -258,8 +258,8 @@ io.on('connection', (socket) => {
       if (!room) throw new GameError('Not in a room')
       if (room.hostKey !== data.playerKey) throw new GameError('Only the host can start')
       manager.startGame(room)
-      ack?.({ ok: true })
       broadcastRoom(room.code)
+      ack?.({ ok: true })
     } catch (e) {
       ack?.({ ok: false, error: (e as Error).message })
     }
@@ -273,8 +273,8 @@ io.on('connection', (socket) => {
       room.state = null
       room.cfg = {}
       room.undoSnapshot = null
-      ack?.({ ok: true })
       broadcastRoom(room.code)
+      ack?.({ ok: true })
     } catch (e) {
       ack?.({ ok: false, error: (e as Error).message })
     }
@@ -286,8 +286,8 @@ io.on('connection', (socket) => {
       if (!room || !room.state) throw new GameError('No game running')
       if (!data.seatId) throw new GameError('Spectators cannot act')
       manager.applyAction(room, data.playerKey, action)
-      ack?.({ ok: true })
       broadcastRoom(room.code)
+      ack?.({ ok: true })
     } catch (e) {
       const msg = (e as Error).message || 'Invalid action'
       socket.emit('actionError', { message: msg })

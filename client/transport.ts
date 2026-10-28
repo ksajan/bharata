@@ -50,6 +50,11 @@ function getPlayerKey(): string {
 const seatTokenKey = (code: string) => `bharata-seat:${code.toUpperCase()}`
 
 /** last room this browser held a seat token for — powers the Rejoin button */
+/** last room this browser watched — powers the Watch-again button after refresh */
+export function lastWatch(): string | null {
+  return localStorage.getItem(WATCH_KEY)
+}
+
 export function lastSeat(): { code: string; token: string } | null {
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i)
@@ -62,6 +67,7 @@ export function lastSeat(): { code: string; token: string } | null {
 }
 
 const HOTSEAT_KEY = 'bharata-hotseat-v1'
+const WATCH_KEY = 'bharata-watch'
 const SNAPSHOT_LOG_LIMIT = 120
 
 interface HotseatSnapshot {
@@ -198,6 +204,7 @@ export class OnlineTransport implements Transport {
     this.seatId = null
     this.isHost = false
     this.watchMode = true
+    localStorage.setItem(WATCH_KEY, this.code)
   }
 
   async sendEmote(emote: string) {
@@ -209,6 +216,7 @@ export class OnlineTransport implements Transport {
     this.code = res.code ?? null
     this.seatId = res.seatId ?? null
     this.watchMode = false
+    localStorage.removeItem(WATCH_KEY)
     this.isHost = true
     if (res.code && res.token) localStorage.setItem(seatTokenKey(res.code), res.token)
   }

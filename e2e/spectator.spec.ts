@@ -49,6 +49,14 @@ test('a watcher sees the table without a seat, and emotes reach every client', a
   await expect(guest.page.locator('.emote-toast').filter({ hasText: 'Asoka' })).toBeVisible()
   await expect(watcher.page.locator('.emote-toast').filter({ hasText: 'Asoka' })).toBeVisible()
 
+  // a refresh must not lose the watch session
+  await watcher.page.reload()
+  await watcher.page.waitForTimeout(350)
+  const watchAgain = watcher.page.getByRole('button', { name: /Watch room/ })
+  await expect(watchAgain).toBeVisible()
+  await watchAgain.click()
+  await expect(watcher.page.locator('.next-step .ns-text')).toContainText(/Watching the court/i, { timeout: 10_000 })
+
   await host.ctx.close()
   await guest.ctx.close()
   await watcher.ctx.close()

@@ -168,5 +168,53 @@ function createGameHiddenCount() {
   check(army.cards.length === beforeCards && s.armyDiscard.length === beforeDiscard, 'rejected conquest payment leaves cards untouched')
 }
 
+
+// Multi-enemy region: winning one battle cannot transfer control while another enemy remains.
+{
+  const s = createGame({ advanced: false, eventFrequency: 'off' }, [
+    { id: 's0', name: 'A' },
+    { id: 's1', name: 'B' },
+    { id: 's2', name: 'C' },
+  ])
+  for (const id of ['s0', 's1', 's2']) handleAction(s, id, { type: 'draft', personality: 'iron_raja', abilities: [] })
+  const rid = 'kuru'
+  const armies = ['s0', 's1', 's2'].map((id) => s.armies.find((a) => a.ownerId === id && a.armyId === 1)!)
+  for (const [i, army] of armies.entries()) {
+    army.regionId = rid
+    army.cards = [{ id: `multi-${i}`, value: i === 0 ? 9 : 1 }]
+  }
+  s.regions[rid].armies = armies.map((a) => ({ seatId: a.ownerId, armyId: 1, armyRef: a.id }))
+  s.regionControl[rid] = 'k1'
+  s.kingdoms.k1.forts[rid] = 'k1'
+  s.pendingBattle = { id: 'multi-b', regionId: rid, attackerSeat: 's0', defenderSeat: 's1', commitments: {}, awaiting: ['s0', 's1'], phase: 'commit' }
+  handleAction(s, 's0', { type: 'battleCommit', cards: [{ armyId: 1, cardId: 'multi-0' }] })
+  handleAction(s, 's1', { type: 'battleCommit', cards: [{ armyId: 1, cardId: 'multi-1' }] })
+  check(s.regionControl[rid] === 'k1', 'a third hostile army prevents conquest transfer')
+  check(s.seats.s0.vp === 1, 'the battle still awards its +1 VP')
+}
+
+// VP steal: the attacker cannot gain more VP than the victim actually loses.
+{
+  const s = twoPlayer()
+  const rid = 'kuru'
+  const atk = s.armies.find((a) => a.ownerId === 's0' && a.armyId === 1)!
+  const def = s.armies.find((a) => a.ownerId === 's1' && a.armyId === 1)!
+  atk.regionId = rid
+  def.regionId = rid
+  atk.cards = [{ id: 'vp-atk', value: 9 }]
+  def.cards = [{ id: 'vp-def', value: 1 }]
+  s.regions[rid].armies = [
+    { seatId: 's0', armyId: 1, armyRef: atk.id },
+    { seatId: 's1', armyId: 1, armyRef: def.id },
+  ]
+  s.regionControl[rid] = 'k1'
+  s.kingdoms.k1.forts[rid] = 'k1'
+  s.seats.s1.vp = 1
+  s.pendingBattle = { id: 'vp-b', regionId: rid, attackerSeat: 's0', defenderSeat: 's1', commitments: {}, awaiting: ['s0', 's1'], phase: 'commit' }
+  handleAction(s, 's0', { type: 'battleCommit', cards: [{ armyId: 1, cardId: 'vp-atk' }] })
+  handleAction(s, 's1', { type: 'battleCommit', cards: [{ armyId: 1, cardId: 'vp-def' }] })
+  check(s.seats.s1.vp === 0 && s.seats.s0.vp === 2, 'VP steal awards at most the victim loss (+ battle VP)')
+}
+
 console.log(failures === 0 ? '✅ EDGE REGRESSIONS PASSED' : `❌ ${failures} edge regressions failed`)
 process.exit(failures === 0 ? 0 : 1)

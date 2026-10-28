@@ -609,6 +609,7 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
 .choice-card:hover:not(:disabled) { border-color: var(--maroon); background: #fff6df; color: var(--ink); }
 .choice-card h4 { color: var(--maroon); margin: 0 0 6px; }
 .handoff-backdrop { z-index: 80; }
+.battle-reveal-backdrop { z-index: 90; }
 
 .modal.draft-modal { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 .draft-body { padding: 22px 30px 8px; overflow-y: auto; scrollbar-gutter: stable; min-height: 0; }
