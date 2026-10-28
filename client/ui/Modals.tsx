@@ -276,7 +276,7 @@ export function BattleRevealModal(props: { state: GameState; onDismiss: () => vo
   const atkName = props.state.seats[battle.attackerSeat]?.name
   const defName = props.state.seats[battle.defenderSeat]?.name
   return (
-    <div className="modal-backdrop">
+    <div className="modal-backdrop battle-reveal-backdrop">
       <div className="modal" style={{ textAlign: 'center' }}>
         <h2>⚔ {region.name} — The Verdict</h2>
         <div className="battle-totals">

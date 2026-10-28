@@ -166,16 +166,17 @@ function checkWin(state: GameState) {
   }
 }
 
-function transferControl(state: GameState, regionId: string, toKingdomId: string | null, bySeatId?: string): boolean {
+function transferControl(state: GameState, regionId: string, toKingdomId: string | null, bySeatId?: string): { ok: boolean; vpAward: number } {
   const region = REGIONS[regionId]
   const prevKingdomId = state.regionControl[regionId] ?? null
-  if (prevKingdomId === toKingdomId) return false
+  if (prevKingdomId === toKingdomId) return { ok: false, vpAward: 0 }
+  let vpAward = region.value
   // check the destination supply before touching the old owner's fort — otherwise
   // a failed transfer deletes the defender's fort and inflates their supply.
   const target = toKingdomId ? state.kingdoms[toKingdomId] : null
   if (target && target.fortSupply <= 0) {
     log(state, `${target.name} has no forts left in the supply — ${region.name} cannot be garrisoned.`, 'action')
-    return false
+    return { ok: false, vpAward: 0 }
   }
   if (prevKingdomId) {
     const prev = state.kingdoms[prevKingdomId]
@@ -189,21 +190,22 @@ function transferControl(state: GameState, regionId: string, toKingdomId: string
         seatOf(state, prev.seats[0])
       const loss = Math.min(prevSeat.vp, region.value)
       prevSeat.vp -= loss
+      vpAward = loss
       if (loss > 0) log(state, `${prevSeat.name} loses ${loss} VP (region seized).`, 'gain')
     }
   }
   delete state.regionEarnedBy[regionId]
   if (!toKingdomId) {
     state.regionControl[regionId] = null
-    return true
+    return { ok: true, vpAward: 0 }
   }
   const k = state.kingdoms[toKingdomId]
-  if (k.fortSupply <= 0) return false // guarded above; keeps the invariant if called directly
+  if (k.fortSupply <= 0) return { ok: false, vpAward: 0 } // guarded above; keeps the invariant if called directly
   state.regionControl[regionId] = toKingdomId
   k.forts[regionId] = k.id
   k.fortSupply -= 1
   if (bySeatId) state.regionEarnedBy[regionId] = bySeatId
-  return true
+  return { ok: true, vpAward }
 }
 
 function drawArmyCard(state: GameState): ArmyCard {
@@ -877,8 +879,8 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       }
 
       const prevOwner = state.regionControl[action.regionId]
-      transferControl(state, action.regionId, k.id, seatId)
-      gainConquestRewards(state, seat, region)
+      const transfer = transferControl(state, action.regionId, k.id, seatId)
+      if (transfer.ok) gainConquestRewards(state, seat, region, transfer.vpAward)
       syncOccupation(state)
       state.actionsLeft -= 1
       state.actionsUsed += 1
@@ -1244,7 +1246,7 @@ function eventKindToCardId(kind: string): string {
   return kind === 'flood' ? 'flood' : kind
 }
 
-function gainConquestRewards(state: GameState, seat: Seat, region: Region) {
+function gainConquestRewards(state: GameState, seat: Seat, region: Region, vpAward = region.value) {
   const parts: string[] = []
   for (const [res, n] of Object.entries(region.yields)) {
     if (n) {
@@ -1256,8 +1258,8 @@ function gainConquestRewards(state: GameState, seat: Seat, region: Region) {
     seat.trade += region.trade
     parts.push(`+${region.trade} trade`)
   }
-  seat.vp += region.value
-  parts.push(`+${region.value} VP`)
+  seat.vp += vpAward
+  parts.push(`+${vpAward} VP`)
   log(state, `${seat.name} plunders ${region.name}: ${parts.join(', ')}.`, 'gain')
 }
 
@@ -1344,8 +1346,18 @@ function resolveBattle(state: GameState) {
   log(state, `⭐ ${winnerSeatObj.name} gains +1 VP for the field of battle.`, 'gain')
 
   if (attackerWins) {
-    const tookControl = transferControl(state, battle.regionId, kingdomOf(state, battle.attackerSeat).id, battle.attackerSeat)
-    if (tookControl) gainConquestRewards(state, atkSeat, region)
+    const atkKingdom = kingdomOf(state, battle.attackerSeat).id
+    const hostileRemains = state.armies.some(
+      (a) => a.alive && a.regionId === battle.regionId && kingdomOf(state, a.ownerId).id !== atkKingdom,
+    )
+    if (hostileRemains) {
+      log(state, `⚔ ${atkSeat.name} wins the field, but another enemy army still holds ${region.name} — no conquest.`, 'battle', {
+        battleId: battle.id,
+      })
+    } else {
+      const transfer = transferControl(state, battle.regionId, atkKingdom, battle.attackerSeat)
+      if (transfer.ok) gainConquestRewards(state, atkSeat, region, transfer.vpAward)
+    }
     log(
       state,
       `⚔ ${atkSeat.name} wins the Battle of ${region.name} (${atkTotal} vs ${defTotal}${defBonus ? ` incl. +${defBonus} terrain` : ''})!`,

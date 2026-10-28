@@ -14,7 +14,7 @@
     "sim:variants": "tsx scripts/simulate-variants.ts",
     "sim:invariants": "tsx scripts/playtest/invariants.ts",
     "sim:logic4p": "tsx scripts/playtest/logic-4p.ts",
-    "e2e": "tsx scripts/e2e-socket.ts && tsx scripts/playtest/hostkey.ts",
+    "e2e": "tsx scripts/e2e-socket.ts && tsx scripts/playtest/hostkey.ts && tsx scripts/e2e-soak.ts",
     "test:ui": "playwright test --config e2e/playwright.config.ts",
     "typecheck": "tsc --noEmit",
     "perf": "node scripts/perf.mjs",
@@ -23,7 +23,9 @@
     "sim:battles": "tsx scripts/playtest/battle-history.ts",
     "art:study": "tsx scripts/crest-study.ts",
     "e2e:security": "tsx scripts/playtest/hostkey.ts",
-    "sim:edges": "tsx scripts/playtest/edge-regressions.ts"
+    "sim:edges": "tsx scripts/playtest/edge-regressions.ts",
+    "e2e:soak": "tsx scripts/e2e-soak.ts",
+    "test:browsers": "playwright test --config e2e/browsers.config.ts"
   },
   "dependencies": {
     "express": "^4.19.2",
