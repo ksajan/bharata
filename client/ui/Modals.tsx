@@ -40,7 +40,7 @@ export function ResourceRevealModal(props: { card: ResourceCardDef; onClose: () 
             )}
             {card.active && (
               <div>
-                <span className="rr-label">You (extra)</span>
+                <span className="rr-label">{card.all ? 'You (extra)' : 'You'}</span>
                 {grantChips(card.active)}
               </div>
             )}
@@ -159,7 +159,7 @@ export function BattleCommitModal(props: {
   const region = REGIONS[battle.regionId]
   const isAttacker = battle.attackerSeat === mySeatId
   const me = state.seats[mySeatId]
-  const myArmies = state.armies.filter((a) => a.ownerId === mySeatId && a.alive)
+  const myArmies = state.armies.filter((a) => a.ownerId === mySeatId && a.alive && a.regionId === battle.regionId)
   const defBonus = state.regionControl[battle.regionId] === state.seats[battle.defenderSeat].kingdomId ? region.value : 0
 
   const toggle = (armyId: 1 | 2, cardId: string) => {
@@ -182,6 +182,7 @@ export function BattleCommitModal(props: {
 
   const enemyName = isAttacker ? state.seats[battle.defenderSeat].name : state.seats[battle.attackerSeat].name
   const hasStrategist = (me.abilityUsesLeft['strategist'] ?? 0) > 0
+  const noCards = myArmies.every((army) => army.cards.length === 0)
 
   return (
     <div className="modal-backdrop">
@@ -235,8 +236,14 @@ export function BattleCommitModal(props: {
         </div>
 
         <div className="btn-row" style={{ justifyContent: 'center' }}>
-          <button className="verdict-btn" onClick={() => props.onCommit(buildCommit(myArmies, picked), strategist)}>
-            Commit {picked.length} card{picked.length === 1 ? '' : 's'} in Secret
+          <button
+            className="verdict-btn"
+            disabled={picked.length === 0 && !noCards}
+            onClick={() => props.onCommit(buildCommit(myArmies, picked), strategist)}
+          >
+            {picked.length === 0 && noCards
+              ? 'Commit no cards in Secret'
+              : `Commit ${picked.length} card${picked.length === 1 ? '' : 's'} in Secret`}
           </button>
         </div>
       </div>

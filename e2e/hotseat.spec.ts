@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test'
-import { dismissReveal } from './helpers'
+import { acknowledgeHandoff, dismissReveal } from './helpers'
 
 let pageErrors: string[] = []
 
@@ -20,8 +20,20 @@ async function draft(page: Page, personality: string, abilities: string[]) {
 async function resolveBattleIfAny(page: Page) {
   // hot-seat: the same commit modal passes the device from attacker to defender
   for (let i = 0; i < 4; i++) {
+    await acknowledgeHandoff(page)
     const commitBtn = page.getByText(/Commit \d+ cards? in Secret/)
-    if (!(await commitBtn.isVisible().catch(() => false))) return
+    if (!(await commitBtn.isVisible().catch(() => false))) {
+      const noCards = page.getByText('Commit no cards in Secret')
+      if (await noCards.isVisible().catch(() => false)) {
+        await noCards.click()
+        continue
+      }
+      return
+    }
+    if (await commitBtn.isDisabled().catch(() => false)) {
+      const card = page.locator('.modal .bcard').first()
+      if (await card.isVisible().catch(() => false)) await card.click()
+    }
     await commitBtn.click()
     const verdict = page.getByText('So it is written')
     if (await verdict.isVisible({ timeout: 3000 }).catch(() => false)) {

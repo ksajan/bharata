@@ -217,7 +217,7 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   background: linear-gradient(180deg, var(--chrome-3), var(--chrome-2));
   border-bottom: 1px solid #4d3a22;
 }
-.topbar .logo { font-family: var(--font-display); font-weight: 400; color: var(--gold-bright); font-size: 19px; letter-spacing: 0.05em; }
+.topbar .logo { padding-left: 2px; font-family: var(--font-display); font-weight: 400; color: var(--gold-bright); font-size: 19px; letter-spacing: 0.05em; }
 .topbar .pill {
   background: #0e0a06; border: 1px solid #4d3a22; padding: 4px 12px; border-radius: 999px;
   font-size: 14px; color: #d8c79a; white-space: nowrap;
@@ -606,8 +606,9 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
   text-align: left; padding: 16px; border-radius: 10px; font-size: 15px;
   border: 1.5px solid rgba(123, 45, 38, 0.45); background: rgba(255, 250, 235, 0.6); color: var(--ink);
 }
-.choice-card:hover { border-color: var(--maroon); background: #fff6df; }
+.choice-card:hover:not(:disabled) { border-color: var(--maroon); background: #fff6df; color: var(--ink); }
 .choice-card h4 { color: var(--maroon); margin: 0 0 6px; }
+.handoff-backdrop { z-index: 80; }
 
 .modal.draft-modal { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 .draft-body { padding: 22px 30px 8px; overflow-y: auto; scrollbar-gutter: stable; min-height: 0; }
@@ -733,8 +734,9 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
 }
 
 @media (max-width: 900px) {
-  .game-main { flex-direction: column; }
-  .board-pane { flex: 1 1 auto; }
+  .game-main { flex-direction: column; min-height: 0; }
+  .board-pane { flex: 1 1 0; min-height: 0; }
+  .board-scroll { min-height: 0; }
   .mobile-only { display: inline-flex; }
   .sidebar {
     position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 75;
@@ -1030,6 +1032,8 @@ h1, h2, h3 { font-family: var(--font-display); margin: 0; font-weight: 400; }
 .hist-replay-cards .battle-cards { justify-content: flex-start; }
 
 @media (max-width: 900px) {
+  .final-table { width: 100%; table-layout: fixed; font-size: 13px; }
+  .final-table th, .final-table td { padding: 4px 4px; white-space: normal; overflow-wrap: anywhere; }
   .history-head-actions { gap: 4px; }
   .hist-controls select:nth-of-type(2) { flex: 1 0 100%; }
   .hist-card-face { max-width: none; }

@@ -282,7 +282,7 @@ export interface GameState {
   pendingBattle: BattleContext | null
   battleSeq: number
   pendingPrize: { seatId: string; card: PrizeCard; reason: string; queue: string[] } | null
-  pendingEventPlacement: { card: EventCardDef; targetsLeft: number; placed: number } | null
+  pendingEventPlacement: { card: EventCardDef; targetsLeft: number; placed: number; placedRegions?: string[] } | null
   log: LogEntry[]
   logSeq: number
   winner: string | null

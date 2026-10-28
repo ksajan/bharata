@@ -112,7 +112,8 @@ function clampRes(state: GameState, n: number) {
 }
 
 function gainResource(state: GameState, seat: Seat, res: Resource, n: number) {
-  seat[res] = clampRes(state, seat[res] + n)
+  // a gain must never reduce a stock, even if a legacy save is above the cap
+  seat[res] = Math.max(seat[res], clampRes(state, seat[res] + Math.max(0, n)))
 }
 
 function gainKey(state: GameState, seat: Seat, key: Resource | 'trade' | 'coins', n: number) {
@@ -146,7 +147,11 @@ function rulerSeatOfKingdomRegion(state: GameState, regionId: string): Seat | nu
   const kid = state.regionControl[regionId]
   if (!kid) return null
   const k = state.kingdoms[kid]
-  return seatOf(state, k.seats[0])
+  // co-rulers keep trade personally — charge the earner, then any co-ruler with trade
+  const earned = state.regionEarnedBy[regionId]
+  if (earned && state.seats[earned]?.kingdomId === kid) return seatOf(state, earned)
+  const withTrade = k.seats.map((sid) => seatOf(state, sid)).find((s) => s.trade > 0)
+  return withTrade ?? seatOf(state, k.seats[0])
 }
 
 function checkWin(state: GameState) {
@@ -165,6 +170,13 @@ function transferControl(state: GameState, regionId: string, toKingdomId: string
   const region = REGIONS[regionId]
   const prevKingdomId = state.regionControl[regionId] ?? null
   if (prevKingdomId === toKingdomId) return false
+  // check the destination supply before touching the old owner's fort — otherwise
+  // a failed transfer deletes the defender's fort and inflates their supply.
+  const target = toKingdomId ? state.kingdoms[toKingdomId] : null
+  if (target && target.fortSupply <= 0) {
+    log(state, `${target.name} has no forts left in the supply — ${region.name} cannot be garrisoned.`, 'action')
+    return false
+  }
   if (prevKingdomId) {
     const prev = state.kingdoms[prevKingdomId]
     delete prev.forts[regionId]
@@ -186,10 +198,7 @@ function transferControl(state: GameState, regionId: string, toKingdomId: string
     return true
   }
   const k = state.kingdoms[toKingdomId]
-  if (k.fortSupply <= 0) {
-    log(state, `${k.name} has no forts left in the supply — ${REGIONS[regionId].name} cannot be garrisoned.`, 'action')
-    return false
-  }
+  if (k.fortSupply <= 0) return false // guarded above; keeps the invariant if called directly
   state.regionControl[regionId] = toKingdomId
   k.forts[regionId] = k.id
   k.fortSupply -= 1
@@ -265,6 +274,9 @@ export const DEFAULT_CONFIG: GameConfig = {
 }
 
 export function createGame(cfgIn: Partial<GameConfig>, seatInfos: SeatInfo[]): GameState {
+  if (!Array.isArray(seatInfos) || seatInfos.length < 2 || seatInfos.length > 8) {
+    throw new GameError('Bharata needs 2–8 rulers')
+  }
   const clamp = (v: unknown, lo: number, hi: number, dflt: number) => {
     const n = Number(v)
     return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : dflt
@@ -278,7 +290,7 @@ export function createGame(cfgIn: Partial<GameConfig>, seatInfos: SeatInfo[]): G
     eventFrequency: (['off', 'every', 'alternate', 'every3'] as const).includes(cfgIn.eventFrequency as never)
       ? cfgIn.eventFrequency!
       : 'alternate',
-    hiddenTokens: clamp(cfgIn.hiddenTokens, 0, 14, 10),
+    hiddenTokens: clamp(cfgIn.hiddenTokens, 0, HIDDEN_TOKEN_POOL.length, 10),
     resourceCap: clamp(cfgIn.resourceCap, 1, 20, 10),
     fortSupply: clamp(cfgIn.fortSupply, 1, 20, 6),
     sellRate: clamp(cfgIn.sellRate, 1, 5, 2),
@@ -346,6 +358,7 @@ export function createGame(cfgIn: Partial<GameConfig>, seatInfos: SeatInfo[]): G
   state.prizeDeck = shuffle(state, PRIZE_CARDS.map((p) => p.id))
   state.armyDeck = shuffle(state, ARMY_DECK.map((c) => ({ ...c, id: `${c.id}` })))
 
+  const startStock = Math.min(config.startResources, config.resourceCap)
   seatInfos.forEach((info, i) => {
     const kid = `k${i < 4 ? i : i - 4}`
     state.seats[info.id] = {
@@ -361,9 +374,9 @@ export function createGame(cfgIn: Partial<GameConfig>, seatInfos: SeatInfo[]): G
       coins: 0,
       trade: 0,
       medicine: 0,
-      iron: config.startResources,
-      wood: config.startResources,
-      food: config.startResources,
+      iron: startStock,
+      wood: startStock,
+      food: startStock,
       winsBattles: 0,
       conditionsMet: [],
       armiesOwned: [1, 2],
@@ -381,7 +394,7 @@ export function createGame(cfgIn: Partial<GameConfig>, seatInfos: SeatInfo[]): G
       capital,
       seats: memberSeats.map((s) => s.id),
       color: memberSeats[0]?.color ?? '#888',
-      fortSupply: config.fortSupply,
+      fortSupply: Math.max(0, config.fortSupply - 1),
       forts: {},
     }
     state.regionControl[capital] = kid
@@ -549,6 +562,7 @@ export function hasValidEventTarget(state: GameState): boolean {
     if (t.yieldsFood && !(region.yields.food ?? 0)) continue
     if (t.hasArmy && (state.regions[region.id]?.armies.length ?? 0) === 0) continue
     if (t.riot && !state.regionControl[region.id]) continue
+    if ((pe.placedRegions ?? []).includes(region.id)) continue
     if ((state.regions[region.id]?.eventTokens.length ?? 0) >= 2) continue
     const rulerKingdomId = state.regionControl[region.id]
     if (rulerKingdomId) {
@@ -563,7 +577,36 @@ export function hasValidEventTarget(state: GameState): boolean {
   return false
 }
 
+/** true when this event card may legally land on this region right now */
+function eventCanTarget(state: GameState, card: EventCardDef, regionId: string): boolean {
+  const region = REGIONS[regionId]
+  if (!region) return false
+  const t = card.target
+  if (t.river && !region.river) return false
+  if (t.harbor && !region.harbor) return false
+  if (t.arid && !region.arid) return false
+  if (t.yieldsFood && !(region.yields.food ?? 0)) return false
+  if (t.hasArmy && (state.regions[regionId]?.armies.length ?? 0) === 0) return false
+  if (t.riot && !state.regionControl[regionId]) return false
+  if ((state.regions[regionId]?.eventTokens.length ?? 0) >= 2) return false
+  const rulerKingdomId = state.regionControl[regionId]
+  if (rulerKingdomId) {
+    const kingdom = state.kingdoms[rulerKingdomId]
+    if (kingdom.seats.some((sid) =>
+      (state.seats[sid]?.abilities ?? []).some((ab) => (ABILITIES[ab].immuneTo ?? []).includes(card.kind)),
+    )) return false
+  }
+  return true
+}
+
 export function handleAction(state: GameState, seatId: string, action: GameAction): void {
+  if (!action || typeof action !== 'object' || typeof (action as { type?: unknown }).type !== 'string') {
+    throw new GameError('Invalid action')
+  }
+  if (state.phase === 'gameover') throw new GameError('The age is over')
+  if (state.pendingPrize && action.type !== 'choosePrize') {
+    throw new GameError('Choose your prize first')
+  }
   _applyAction(state, seatId, action)
   // bookkeeping guarantee: occupation is always derived-fresh after any action
   syncOccupation(state)
@@ -578,6 +621,7 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       if (seat.personality) throw new GameError('Already drafted')
       // validate everything BEFORE mutating
       if (!Object.prototype.hasOwnProperty.call(PERSONALITIES, action.personality)) throw new GameError('Unknown personality')
+      if (action.abilities !== undefined && !Array.isArray(action.abilities)) throw new GameError('Invalid abilities')
       const uniq = [...new Set(action.abilities ?? [])]
       if (state.config.advanced) {
         if (uniq.length !== 2) throw new GameError('Pick exactly 2 abilities')
@@ -687,7 +731,9 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       }
       // validate respawn precondition BEFORE spending anything
       if (!army.alive) {
-        const anyAlive = armiesOfSeat(state, seatId).some((a) => a.alive)
+        const anyAlive = Object.values(state.seats)
+          .filter((s) => s.kingdomId === seat.kingdomId)
+          .some((s) => armiesOfSeat(state, s.id).some((a) => a.alive))
         if (!controlsCapital(state, seat) && anyAlive) {
           throw new GameError('Army is destroyed — retake your capital before it can respawn')
         }
@@ -734,6 +780,7 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       requireActive(state, seatId)
       requirePhase(state, 'action')
       enforceBattlePending(state)
+      rejectIfBattlePending(state)
       const seat = activeSeatObj(state)
       if (seat.coins < state.config.extraActionCost) throw new GameError('Not enough coins')
       seat.coins -= state.config.extraActionCost
@@ -746,6 +793,7 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       requireActive(state, seatId)
       requirePhase(state, 'action')
       enforceBattlePending(state)
+      rejectIfBattlePending(state)
       const seat = activeSeatObj(state)
       if (state.actionsLeft <= 0) throw new GameError('No actions left')
       enforceAffliction(state, seat)
@@ -777,6 +825,7 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       requireActive(state, seatId)
       requirePhase(state, 'action')
       enforceBattlePending(state)
+      rejectIfBattlePending(state)
       const seat = activeSeatObj(state)
       const k = kingdomOf(state, seatId)
       if (state.actionsLeft <= 0) throw new GameError('No actions left')
@@ -801,15 +850,21 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
         // Mahajanapada: pay `value` army cards from your armies
         const pay = action.payWithCards ?? []
         if (pay.length !== region.value) throw new GameError(`Conquering costs ${region.value} army cards`)
-        const ownedArmies = armiesOfSeat(state, seatId)
+        const ownedArmies = armiesOfSeat(state, seatId).filter((a) => a.alive)
         const seen = new Set<string>()
+        // validate the whole payment before spending a single card
+        const payments: { army: Army; card: ArmyCard }[] = []
         for (const p of pay) {
+          if (!p || !p.cardId) throw new GameError('Invalid army card payment')
           if (seen.has(p.cardId)) throw new GameError('Duplicate card payment')
           seen.add(p.cardId)
           const army = ownedArmies.find((a) => a.armyId === p.armyId)
           const card = army?.cards.find((c) => c.id === p.cardId)
           if (!army || !card) throw new GameError('Invalid army card payment')
-          army.cards = army.cards.filter((c) => c.id !== p.cardId)
+          payments.push({ army, card })
+        }
+        for (const { army, card } of payments) {
+          army.cards = army.cards.filter((c) => c.id !== card.id)
           state.armyDiscard.push({ id: card.id, value: card.value })
         }
         for (const army of ownedArmies) {
@@ -841,6 +896,7 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       requireActive(state, seatId)
       requirePhase(state, 'action')
       enforceBattlePending(state)
+      rejectIfBattlePending(state)
       const seat = activeSeatObj(state)
       if (state.actionsLeft <= 0) throw new GameError('No actions left')
       enforceAffliction(state, seat)
@@ -866,17 +922,27 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       if (!battle.awaiting.includes(seatId)) throw new GameError('Not part of this battle')
       const seat = seatOf(state, seatId)
       let bonus = 0
-      // validate cards & strategist BEFORE mutating anything
+      if (!Array.isArray(action.cards)) throw new GameError('Invalid battle cards')
+      if (action.cards.length === 0) {
+        const hasCards = armiesOfSeat(state, seatId).some(
+          (a) => a.alive && a.regionId === battle.regionId && a.cards.length > 0,
+        )
+        if (hasCards) throw new GameError('Commit at least one battle card')
+      }
+      // validate cards, army location and strategist BEFORE mutating anything
       const ownedArmies = armiesOfSeat(state, seatId)
       const chosen: { armyId: ArmyId; cardId: string; value: number }[] = []
       const seen = new Set<string>()
       for (const p of action.cards) {
+        if (!p || typeof p.cardId !== 'string' || !p.cardId) throw new GameError('Invalid battle card')
         if (seen.has(p.cardId)) throw new GameError('Duplicate card')
         seen.add(p.cardId)
         if (!seat.armiesOwned.includes(p.armyId)) throw new GameError('Not your army')
         const army = ownedArmies.find((a) => a.armyId === p.armyId)
         const card = army?.cards.find((c) => c.id === p.cardId)
-        if (!army || !card) throw new GameError('Card not in that army')
+        if (!army || !army.alive) throw new GameError('That army is destroyed')
+        if (!card) throw new GameError('Card not in that army')
+        if (army.regionId !== battle.regionId) throw new GameError('That army is not in this battle')
         chosen.push({ armyId: p.armyId, cardId: card.id, value: card.value })
       }
       // The defender draws from a single army (rules); the attacker may wield both.
@@ -900,6 +966,7 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       requireActive(state, seatId)
       requirePhase(state, 'action')
       enforceBattlePending(state)
+      rejectIfBattlePending(state)
       const seat = activeSeatObj(state)
       if (!state.config.advanced) throw new GameError('Advanced mode only')
       if (state.actionsLeft <= 0) throw new GameError('No actions left')
@@ -920,6 +987,7 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       requireActive(state, seatId)
       requirePhase(state, 'action')
       enforceBattlePending(state)
+      rejectIfBattlePending(state)
       const seat = activeSeatObj(state)
       if (state.actionsLeft <= 0) throw new GameError('No actions left')
       const k = kingdomOf(state, seatId)
@@ -1044,6 +1112,9 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       }
       const region = REGIONS[action.regionId]
       if (!region) throw new GameError('Unknown region')
+      if ((pe.placedRegions ?? []).includes(action.regionId)) {
+        throw new GameError('That region was already struck — choose another')
+      }
       if ((state.regions[action.regionId]?.eventTokens.length ?? 0) >= 2) {
         throw new GameError('That region is already overwhelmed (2 tokens max)')
       }
@@ -1070,6 +1141,7 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
         throw new GameError(`${immuneRulers.join(' & ')} ${immuneRulers.length > 1 ? 'are' : 'is'} immune to this omen — pick another region`)
       }
       state.regions[action.regionId].eventTokens.push({ id: `ev${state.logSeq++}`, kind: pe.card.kind })
+      pe.placedRegions = [...(pe.placedRegions ?? []), action.regionId]
       if (pe.card.onPlace === 'steal_trade') {
         const rulerSeat = rulerSeatOfKingdomRegion(state, action.regionId)
         if (rulerSeat) {
@@ -1091,7 +1163,10 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
       const pp = state.pendingPrize
       if (!pp) throw new GameError('No prize pending')
       if (pp.seatId !== seatId) throw new GameError('Not your prize')
-      if (action.optionIndex < 0 || action.optionIndex >= pp.card.options.length) throw new GameError('Invalid choice')
+      if (state.activeSeat !== seatId) throw new GameError('Not your turn')
+      if (!Number.isInteger(action.optionIndex) || action.optionIndex < 0 || action.optionIndex >= pp.card.options.length) {
+        throw new GameError('Invalid choice')
+      }
       const seat = seatOf(state, seatId)
       const opt = pp.card.options[action.optionIndex]
       applyPrizeEffect(state, seat, opt.effect)
@@ -1132,6 +1207,7 @@ function _applyAction(state: GameState, seatId: string, action: GameAction): voi
             card,
             targetsLeft: card.target.count,
             placed: 0,
+            placedRegions: [],
           }
           log(state, `${card.icon} Event drawn: “${card.name}” — ${card.text}`, 'event')
           return
@@ -1153,10 +1229,15 @@ function enforceAffliction(state: GameState, seat: Seat, ending = false) {
 }
 
 function enforceBattlePending(state: GameState) {
-  // only blocks the seat that still owes a commitment — the other side may act freely
+  // The active seat must not spend actions while its own commitment is owed.
   if (state.pendingBattle && state.pendingBattle.awaiting.includes(state.activeSeat)) {
     throw new GameError('A battle awaits — commit battle cards before anything else')
   }
+}
+
+/** Ordinary actions are unsafe while any battle is unresolved, even after your own commit. */
+function rejectIfBattlePending(state: GameState) {
+  if (state.pendingBattle) throw new GameError('A battle awaits — let both sides commit first')
 }
 
 function eventKindToCardId(kind: string): string {
@@ -1324,6 +1405,10 @@ function revealToken(state: GameState, seat: Seat, tokenId: string, regionId: st
     case 'ambush': {
       log(state, `🐍 Ambush in ${region.name}! An event strikes the region.`, 'event')
       const card = drawEventCard(state)
+      if (!eventCanTarget(state, card, regionId)) {
+        log(state, `${card.icon} ${card.name} finds no foothold in ${region.name}.`, 'event')
+        break
+      }
       state.regions[regionId].eventTokens.push({ id: `ev${state.logSeq++}`, kind: card.kind })
       log(state, `${card.icon} ${card.name} breaks out in ${region.name}.`, 'event')
       break
@@ -1358,6 +1443,7 @@ export function eventTargetsFor(state: GameState, _seatId: string): Set<string> 
     if (t.yieldsFood && !(region.yields.food ?? 0)) continue
     if (t.hasArmy && (state.regions[region.id]?.armies.length ?? 0) === 0) continue
     if (t.riot && !state.regionControl[region.id]) continue
+    if ((pe.placedRegions ?? []).includes(region.id)) continue
     if ((state.regions[region.id]?.eventTokens.length ?? 0) >= 2) continue
     // immunity of any ruling co-ruler blocks this target
     const rulerKingdomId = state.regionControl[region.id]

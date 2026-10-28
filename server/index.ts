@@ -86,29 +86,55 @@ io.on('connection', (socket) => {
     const lobby = {
       code: room.code,
       players: room.players.map((p) => ({ seatId: p.seatId, name: p.name, connected: p.connected })),
-      hostKey: room.hostKey,
       cfg: room.cfg,
       started: !!room.state,
     }
+    // hostKey is a credential, not a lobby field — send only the derived flag
     for (const p of room.players) {
       if (p.socketId) {
-        io.to(p.socketId).emit('room', lobby)
+        io.to(p.socketId).emit('room', { ...lobby, isHost: p.playerKey === room.hostKey })
         if (room.state) io.to(p.socketId).emit('state', sanitizeState(room.state, p.seatId))
         else io.to(p.socketId).emit('state', null)
       }
     }
     // spectators get the same lobby and a seat-less, secret-free view
     for (const watcherId of room.watchers) {
-      io.to(watcherId).emit('room', lobby)
+      io.to(watcherId).emit('room', { ...lobby, isHost: false })
       io.to(watcherId).emit('state', room.state ? sanitizeState(room.state, null) : null)
     }
   }
 
+  const cleanName = (value: unknown) => {
+    const name = typeof value === 'string' ? value.trim().slice(0, 24) : ''
+    return name || 'Ruler'
+  }
+
+  /** Leave the current Socket.IO room and mark its seat off before switching rooms. */
+  const leaveCurrentRoom = (nextCode?: string) => {
+    const oldCode = data.roomCode
+    if (!oldCode || oldCode === nextCode) return
+    const old = manager.getRoom(oldCode)
+    if (old) {
+      old.watchers.delete(socket.id)
+      const oldPlayer = old.players.find((p) => p.socketId === socket.id)
+      if (oldPlayer) {
+        oldPlayer.connected = false
+        oldPlayer.socketId = null
+        oldPlayer.disconnectedAt = Date.now()
+        if (old.state?.seats[oldPlayer.seatId]) old.state.seats[oldPlayer.seatId].connected = false
+      }
+      socket.leave(oldCode)
+      broadcastRoom(oldCode)
+    }
+    data.roomCode = null
+    data.seatId = null
+  }
+
   socket.on('room:create', ({ name }: { name: string }, ack?: (r: unknown) => void) => {
     try {
-      if (tooManyFailures(socket.handshake.address)) throw new GameError('Too many failed attempts — wait a minute')
       const room = manager.createRoom(data.playerKey)
-      const { player } = manager.joinRoom(room.code, (name || 'Ruler').slice(0, 24), data.playerKey)
+      leaveCurrentRoom(room.code)
+      const { player } = manager.joinRoom(room.code, cleanName(name), data.playerKey, undefined, socket.id)
       player.socketId = socket.id
       data.roomCode = room.code
       data.seatId = player.seatId
@@ -116,32 +142,38 @@ io.on('connection', (socket) => {
       ack?.({ ok: true, code: room.code, seatId: player.seatId, token: player.token })
       broadcastRoom(room.code)
     } catch (e) {
-      recordFailure(socket.handshake.address)
       ack?.({ ok: false, error: (e as Error).message })
     }
   })
 
-  socket.on('room:join', ({ code, name }: { code: string; name: string }, ack?: (r: unknown) => void) => {
+  socket.on('room:join', ({ code, name }: { code?: unknown; name?: unknown }, ack?: (r: unknown) => void) => {
+    let throttled = false
     try {
-      if (tooManyFailures(socket.handshake.address)) throw new GameError('Too many failed attempts — wait a minute')
-      const { room, player } = manager.joinRoom(code, (name || 'Ruler').slice(0, 24), data.playerKey)
+      if (typeof code !== 'string' || code !== code.trim() || !code) throw new GameError('Invalid room code')
+      throttled = tooManyFailures(socket.handshake.address)
+      if (throttled) throw new GameError('Too many failed attempts — wait a minute')
+      const { room, player } = manager.joinRoom(code.trim().toUpperCase(), cleanName(name), data.playerKey, undefined, socket.id)
       player.socketId = socket.id
+      leaveCurrentRoom(room.code)
       data.roomCode = room.code
       data.seatId = player.seatId
       socket.join(room.code)
       ack?.({ ok: true, code: room.code, seatId: player.seatId, token: player.token })
       broadcastRoom(room.code)
     } catch (e) {
-      recordFailure(socket.handshake.address)
+      if (!throttled) recordFailure(socket.handshake.address)
       ack?.({ ok: false, error: (e as Error).message })
     }
   })
 
-  socket.on('room:rejoin', ({ code, token }: { code: string; token: string }, ack?: (r: unknown) => void) => {
+  socket.on('room:rejoin', ({ code, token }: { code?: unknown; token?: unknown }, ack?: (r: unknown) => void) => {
     try {
-      const found = manager.rejoin(code, data.playerKey, token)
+      if (typeof code !== 'string' || code !== code.trim() || !code) throw new GameError('Invalid room code')
+      if (typeof token !== 'string' || !token) throw new GameError('Invalid seat token')
+      const found = manager.rejoin(code.trim().toUpperCase(), data.playerKey, token)
       if (!found) throw new GameError('That seat is gone — join as a new ruler')
       found.player.socketId = socket.id
+      leaveCurrentRoom(found.room.code)
       data.roomCode = found.room.code
       data.seatId = found.player.seatId
       socket.join(found.room.code)
@@ -152,14 +184,15 @@ io.on('connection', (socket) => {
     }
   })
 
-  socket.on('room:watch', ({ code }: { code: string }, ack?: (r: unknown) => void) => {
+  socket.on('room:watch', ({ code }: { code?: unknown }, ack?: (r: unknown) => void) => {
+    let throttled = false
     try {
-      if (tooManyFailures(socket.handshake.address)) throw new GameError('Too many failed attempts — wait a minute')
-      const room = manager.getRoom(code)
-      if (!room) {
-        recordFailure(socket.handshake.address)
-        throw new GameError('Room not found')
-      }
+      if (typeof code !== 'string' || code !== code.trim() || !code) throw new GameError('Invalid room code')
+      throttled = tooManyFailures(socket.handshake.address)
+      if (throttled) throw new GameError('Too many failed attempts — wait a minute')
+      const room = manager.getRoom(code.trim().toUpperCase())
+      if (!room) throw new GameError('Room not found')
+      leaveCurrentRoom(room.code)
       room.watchers.add(socket.id)
       data.roomCode = room.code
       data.seatId = null
@@ -167,7 +200,7 @@ io.on('connection', (socket) => {
       ack?.({ ok: true, code: room.code })
       broadcastRoom(room.code)
     } catch (e) {
-      recordFailure(socket.handshake.address)
+      if (!throttled) recordFailure(socket.handshake.address)
       ack?.({ ok: false, error: (e as Error).message })
     }
   })
@@ -177,7 +210,7 @@ io.on('connection', (socket) => {
       const room = data.roomCode ? manager.getRoom(data.roomCode) : null
       if (!room) throw new GameError('Not in a room')
       if (!data.seatId) throw new GameError('Spectators cannot emote')
-      if (!EMOTES.has(emote)) throw new GameError('Unknown emote')
+      if (typeof emote !== 'string' || !EMOTES.has(emote)) throw new GameError('Unknown emote')
       const player = room.players.find((p) => p.seatId === data.seatId)
       if (!player) throw new GameError('You are not seated')
       const now = Date.now()

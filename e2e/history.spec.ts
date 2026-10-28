@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { dismissReveal } from './helpers'
 import { REGIONS } from '../shared/data'
+import { acknowledgeHandoff } from './helpers'
 
 /** Action history: grouped by turn, filterable by ruler and kind, searchable. */
 
@@ -154,6 +155,7 @@ test('battle records expand and replay from history', async ({ page }) => {
   await page.waitForTimeout(500)
   await page.locator('.resume-banner').click()
   await page.waitForTimeout(500)
+  await acknowledgeHandoff(page)
   const take = page.getByRole('button', { name: 'Take the bounty' })
   if (await take.isVisible().catch(() => false)) await take.click()
   await page.waitForTimeout(200)

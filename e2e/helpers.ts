@@ -11,3 +11,12 @@ export async function dismissReveal(page: Page) {
     // no reveal in this flow
   }
 }
+
+/** Hot-seat privacy gate that can now sit above a pending battle or prize. */
+export async function acknowledgeHandoff(page: Page) {
+  const handoff = page.locator('.handoff-backdrop .primary')
+  if (await handoff.count()) {
+    await handoff.first().click()
+    await page.waitForTimeout(120)
+  }
+}

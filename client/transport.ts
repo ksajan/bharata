@@ -6,7 +6,7 @@ import type { Room } from '../server/rooms'
 export interface LobbySnapshot {
   code: string
   players: { seatId: string; name: string; connected: boolean }[]
-  hostKey: string
+  isHost: boolean
   cfg: Partial<GameConfig>
   started: boolean
 }
@@ -133,14 +133,15 @@ export class OnlineTransport implements Transport {
   private roomCbs: ((r: LobbySnapshot | null) => void)[] = []
   private stateCbs: ((s: GameState | null) => void)[] = []
   private errorCbs: ((m: string) => void)[] = []
+  private watchMode = false
   private emoteCbs: ((e: { seatId: string; name: string; emote: string; at: number }) => void)[] = []
   private lastView: GameState | null = null
   private undoMark: UndoMark | null = null
 
   constructor() {
     this.socket = io('/', { auth: { playerKey: this.playerKey } })
-    this.socket.on('room', (room: LobbySnapshot & { hostKey: string }) => {
-      this.isHost = room?.hostKey === this.playerKey
+    this.socket.on('room', (room: LobbySnapshot | null) => {
+      this.isHost = !!room?.isHost
       this.roomCbs.forEach((cb) => cb(room))
     })
     this.socket.on('state', (s: GameState | null) => {
@@ -152,6 +153,13 @@ export class OnlineTransport implements Transport {
     })
     this.socket.on('emote', (e: { seatId: string; name: string; emote: string; at: number }) => {
       this.emoteCbs.forEach((cb) => cb(e))
+    })
+    // Socket.IO replaces the socket after a transport blip. Re-bind the seat
+    // (or the watcher) before the user can act on a stranger socket.
+    this.socket.on('connect', () => {
+      if (!this.code) return
+      if (this.watchMode) this.watch(this.code).catch(() => {})
+      else if (this.seatId) this.rejoin(this.code).catch(() => {})
     })
   }
 
@@ -189,6 +197,7 @@ export class OnlineTransport implements Transport {
     this.code = res.code ?? code.toUpperCase()
     this.seatId = null
     this.isHost = false
+    this.watchMode = true
   }
 
   async sendEmote(emote: string) {
@@ -199,6 +208,7 @@ export class OnlineTransport implements Transport {
     const res = await this.emit('room:create', { name })
     this.code = res.code ?? null
     this.seatId = res.seatId ?? null
+    this.watchMode = false
     this.isHost = true
     if (res.code && res.token) localStorage.setItem(seatTokenKey(res.code), res.token)
   }

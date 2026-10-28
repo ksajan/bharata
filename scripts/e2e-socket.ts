@@ -8,8 +8,10 @@ function assert(cond: boolean, msg: string) {
   console.log(` ${cond ? '✓' : '✗'} ${msg}`)
 }
 
+const URL = process.env.E2E_URL ?? 'http://localhost:3001'
+
 function client(key?: string) {
-  const s = io('http://localhost:3001', {
+  const s = io(URL, {
     auth: { playerKey: key ?? `pk-${Math.random().toString(36).slice(2)}` },
     timeout: 5000,
   })

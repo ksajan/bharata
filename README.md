@@ -202,17 +202,19 @@ scripts/   simulations, playtest invariants, perf budget, artifact generation
 
 ```bash
 npm run typecheck        # TypeScript, no emit
-npm run test:ui          # 16 Playwright journeys (hot-seat, online, conquer, economy, guidance,
+npm run test:ui          # 20 Playwright journeys (hot-seat, online, conquer, economy, guidance,
                          # accessibility, resume, setup, board geometry, history, perspective,
-                         # spectator + emotes)
-npm run e2e              # socket-level network/e2e checks (rejoin, spectator, emote cooldown)
+                         # spectator + emotes, tablet/landscape, battle handoff, prize hover, final table)
+npm run e2e              # socket e2e: rejoin, spectator, emote cooldown, lobby security
+npm run e2e:security     # lobby does not expose hostKey; no second socket seat takeover
 npm run sim              # simulated full games + rule assertions
 npm run sim:invariants   # state invariants after every action
 npm run sim:battles      # a forced battle verifies persisted battle records
+npm run sim:edges        # prize/battle/fort/token edge regressions
 npm run perf             # render + bundle budget (dev server on :5173)
 ```
 
-Latest measurements: **~100 kB gzip** initial JS (rules guide split into its own 2.2 kB chunk),
+Latest measurements: **~106 kB gzip** initial JS (rules guide split into its own 2.2 kB chunk),
 **no long task over 50 ms**, and local UI interactions do not re-render the 38-region board.
 
 ---

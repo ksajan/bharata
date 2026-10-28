@@ -18,7 +18,7 @@ export interface PlayerConn {
 export interface UndoSnapshot {
   state: GameState
   seatId: string
-  logLen: number
+  logSeq: number
   battleSeq: number
 }
 
@@ -43,7 +43,7 @@ export function makeCode(len = 5): string {
 /** host-provided config is whitelisted & range-checked before touching a room */
 const CFG_LIMITS: Record<string, [number, number]> = {
   vpTarget: [5, 100],
-  hiddenTokens: [0, 14],
+  hiddenTokens: [0, 10],
   resourceCap: [1, 20],
   fortSupply: [1, 20],
   sellRate: [1, 5],
@@ -87,10 +87,15 @@ export class RoomManager {
   }
 
   getRoom(code: string): Room | null {
-    return this.rooms.get(code.toUpperCase()) ?? null
+    if (typeof code !== 'string') return null
+    return this.rooms.get(code.trim().toUpperCase()) ?? null
   }
 
-  joinRoom(code: string, name: string, playerKey: string, token?: string): { room: Room; player: PlayerConn } {
+  private markSeatConnected(room: Room, player: PlayerConn, connected: boolean) {
+    if (room.state?.seats[player.seatId]) room.state.seats[player.seatId].connected = connected
+  }
+
+  joinRoom(code: string, name: string, playerKey: string, token?: string, socketId?: string): { room: Room; player: PlayerConn } {
     const room = this.getRoom(code)
     if (!room) throw new GameError('Room not found')
     // a seat token reclaims a specific seat — even from a fresh browser (disconnect recovery)
@@ -100,14 +105,19 @@ export class RoomManager {
         seated.playerKey = playerKey
         seated.connected = true
         seated.disconnectedAt = null
+        this.markSeatConnected(room, seated, true)
         return { room, player: seated }
       }
     }
     const existing = room.players.find((p) => p.playerKey === playerKey)
     if (existing) {
+      if (socketId && existing.connected && existing.socketId && existing.socketId !== socketId) {
+        throw new GameError('That seat is already connected in another tab')
+      }
       existing.name = name
       existing.connected = true
       existing.disconnectedAt = null
+      this.markSeatConnected(room, existing, true)
       return { room, player: existing }
     }
     if (room.state) throw new GameError('Game already in progress')
@@ -135,6 +145,7 @@ export class RoomManager {
     seated.playerKey = playerKey
     seated.connected = true
     seated.disconnectedAt = null
+    this.markSeatConnected(room, seated, true)
     return { room, player: seated }
   }
 
@@ -157,17 +168,19 @@ export class RoomManager {
       return
     }
     // a march is undoable until anything else happens — snapshot it
-    if (action.type === 'moveArmy') {
-      room.undoSnapshot = {
-        state: structuredClone(room.state),
-        seatId: player.seatId,
-        logLen: room.state.log.length,
-        battleSeq: room.state.battleSeq,
-      }
-    } else {
-      room.undoSnapshot = null
-    }
+    // Snapshot a march, but clear the old snapshot only after the action
+    // succeeds. A rejected action must not destroy a legal undo.
+    const moveSnapshot =
+      action.type === 'moveArmy'
+        ? {
+            state: structuredClone(room.state),
+            seatId: player.seatId,
+            logSeq: room.state.logSeq,
+            battleSeq: room.state.battleSeq,
+          }
+        : null
     handleAction(room.state, player.seatId, action)
+    room.undoSnapshot = moveSnapshot
   }
 
   /** roll back the last march — only while it is still the freshest thing that happened */
@@ -179,7 +192,7 @@ export class RoomManager {
     const s = room.state!
     if (s.pendingBattle) throw new GameError('Too late — the battle has begun')
     if (s.phase !== 'action' || s.activeSeat !== snap.seatId) throw new GameError('Too late — the moment has passed')
-    if (s.battleSeq !== snap.battleSeq || s.log.length !== snap.logLen + 1) {
+    if (s.battleSeq !== snap.battleSeq || s.logSeq !== snap.logSeq + 1) {
       throw new GameError('Too late — other orders were given')
     }
     room.state = snap.state

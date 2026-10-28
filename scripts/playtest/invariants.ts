@@ -49,6 +49,7 @@ function firstTarget(state: GameState): string | null {
     if (t.yieldsFood && !(r.yields.food ?? 0)) continue
     if (t.hasArmy && (state.regions[r.id]?.armies.length ?? 0) === 0) continue
     if (t.riot && !state.regionControl[r.id]) continue
+    if ((pe.placedRegions ?? []).includes(r.id)) continue
     if ((state.regions[r.id]?.eventTokens.length ?? 0) >= 2) continue
     const kid = state.regionControl[r.id]
     if (kid && state.kingdoms[kid].seats.some((sid) => (state.seats[sid]?.abilities ?? []).some((ab) => (ABILITIES[ab].immuneTo ?? []).includes(pe.card.kind)))) continue
@@ -77,7 +78,7 @@ for (let g = 0; g < 4; g++) {
     while (state.phase === 'action' && state.activeSeat === sid && guard-- > 0) {
       if (state.pendingBattle && state.pendingBattle.awaiting.includes(sid)) {
         const isAtk = state.pendingBattle.attackerSeat === sid
-        const cards = state.armies.filter(a => a.ownerId === sid && a.alive && (isAtk || a.armyId === s.armiesOwned[0])).flatMap(a => a.cards.slice(0, isAtk ? 4 : 3).map(c => ({ armyId: a.armyId, cardId: c.id })))
+        const cards = state.armies.filter(a => a.ownerId === sid && a.alive && a.regionId === state.pendingBattle!.regionId && (isAtk || a.armyId === s.armiesOwned[0])).flatMap(a => a.cards.slice(0, isAtk ? 4 : 3).map(c => ({ armyId: a.armyId, cardId: c.id })))
         tryA(state, sid, { type: 'battleCommit', cards }); continue
       }
       const k = state.kingdoms[s.kingdomId]
