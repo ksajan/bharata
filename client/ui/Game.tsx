@@ -569,7 +569,7 @@ export function Game(props: {
           <div className="players-list">
             {showMyCourt && mySeatObj && (
               <div className="my-court" title="Your court while another ruler holds the stage">
-                <KingdomCrest seed={mySeatObj.kingdomId} label={state.kingdoms[mySeatObj.kingdomId].name} size={14} color={mySeatObj.color} />
+                <KingdomCrest seed={mySeatObj.kingdomId} label={state.kingdoms[mySeatObj.kingdomId].name} size={18} color={mySeatObj.color} />
                 <b>You</b>
                 <span className="my-court-vp">
                   {mySeatObj.vp}/{state.config.vpTarget}
@@ -603,7 +603,7 @@ export function Game(props: {
                     <span className="pc-order" title={`Turn order ${seatIndex + 1}`}>
                       {seatIndex + 1}
                     </span>
-                    <KingdomCrest seed={s.kingdomId} label={k.name} size={15} color={s.color} />
+                    <KingdomCrest seed={s.kingdomId} label={k.name} size={18} color={s.color} />
                     <span className="pc-name">{s.name}</span>
                     {s.id === mySeatId && <span className="pc-you">you</span>}
                     {coRulers.length > 0 && (
@@ -1084,7 +1084,7 @@ export function Game(props: {
 
       {/* ---------- modals ---------- */}
       {needsHandoff && (
-        <div className="modal-backdrop">
+        <div className="modal-backdrop handoff-backdrop">
           <div className="modal" style={{ textAlign: 'center', width: 420 }}>
             <h2>🛕 Pass the device</h2>
             <div className="sub" style={{ fontSize: 17 }}>
@@ -1109,6 +1109,7 @@ export function Game(props: {
       )}
       {state.pendingBattle && state.phase !== 'gameover' && mySeatId && state.pendingBattle.awaiting.includes(mySeatId) && (
         <BattleCommitModal
+          key={`${state.pendingBattle.id}-${mySeatId}`}
           state={state}
           mySeatId={mySeatId}
           onCommit={(cards, useStrategist) => send({ type: 'battleCommit', cards, useStrategist })}

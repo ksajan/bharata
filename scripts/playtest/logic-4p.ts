@@ -468,6 +468,7 @@ function validEventTargets(state: GameState): string[] {
     // NOTE: mirror the engine exactly — it reads the possibly-stale regions[].armies
     if (t.hasArmy && (state.regions[region.id]?.armies.length ?? 0) === 0) continue
     if (t.riot && !state.regionControl[region.id]) continue
+    if ((pe.placedRegions ?? []).includes(region.id)) continue
     if ((state.regions[region.id]?.eventTokens.length ?? 0) >= 2) continue
     const rulerKingdomId = state.regionControl[region.id]
     if (rulerKingdomId) {
@@ -518,7 +519,7 @@ function commitForBot(state: GameState, sid: string, style: string): { cards: Pa
   const seat = state.seats[sid]
   const battle = state.pendingBattle!
   const isDefender = battle.defenderSeat === sid
-  const armies = armiesOf(state, sid).filter((a) => a.alive)
+  const armies = armiesOf(state, sid).filter((a) => a.alive && a.regionId === battle.regionId)
   const byPower = [...armies].sort((a, b) => armyPower(b) - armyPower(a))
 
   const allCards = (army: Army) => army.cards.map((c) => ({ armyId: army.armyId, cardId: c.id }))
@@ -535,7 +536,10 @@ function commitForBot(state: GameState, sid: string, style: string): { cards: Pa
     return { cards, strategist: cards.length > 0 && (seat.abilityUsesLeft['strategist'] ?? 0) > 0 }
   }
   if (style === 'economist') {
-    if (isDefender) return { cards: [], strategist: false }
+    if (isDefender) {
+      const a = byPower.find((army) => army.cards.length > 0)
+      return { cards: a ? weakest(a, 1) : [], strategist: false }
+    }
     const a = byPower[byPower.length - 1] ?? armies[0]
     return { cards: a ? weakest(a, 1) : [], strategist: false }
   }
@@ -580,7 +584,7 @@ function commitForBot(state: GameState, sid: string, style: string): { cards: Pa
     }
   }
   if (best.cards.length > 0) return { cards: best.cards, strategist: false }
-  const a = byPower[byPower.length - 1] ?? armies[0]
+  const a = byPower.find((army) => army.cards.length > 0) ?? byPower[0] ?? armies[0]
   return { cards: a ? weakest(a, 1) : [], strategist: false }
 }
 

@@ -39,6 +39,7 @@ function validEventTarget(state: GameState): string | null {
     if (t.yieldsFood && !(region.yields.food ?? 0)) continue
     if (t.hasArmy && (state.regions[region.id]?.armies.length ?? 0) === 0) continue
     if (t.riot && !state.regionControl[region.id]) continue
+    if ((pe.placedRegions ?? []).includes(region.id)) continue
     if ((state.regions[region.id]?.eventTokens.length ?? 0) >= 2) continue
     const rulerKingdomId = state.regionControl[region.id]
     if (rulerKingdomId) {
@@ -93,12 +94,15 @@ function runBotTurn(state: GameState, seatId: string) {
     const b = state.pendingBattle
     if (b && b.awaiting.includes(seatId)) {
       const isAtk = b.attackerSeat === seatId
-      const armyLimit = isAtk ? undefined : seat.armiesOwned[0]
-      const cards = state.armies
-        .filter((a) => a.ownerId === seatId && a.alive && (armyLimit === undefined || a.armyId === armyLimit))
-        .flatMap((a) => a.cards.slice(0, isAtk ? 5 : 3).map((c) => ({ armyId: a.armyId, cardId: c.id })))
-      tryAction(state, seatId, { type: 'battleCommit', cards })
-      return true
+      const inRegion = state.armies.filter((a) => a.ownerId === seatId && a.alive && a.regionId === b.regionId)
+      let cards: { armyId: 1 | 2; cardId: string }[] = []
+      if (isAtk) {
+        cards = inRegion.flatMap((a) => a.cards.slice(0, 4).map((c) => ({ armyId: a.armyId, cardId: c.id })))
+      } else {
+        const defenderArmy = inRegion.slice().sort((a, b) => b.cards.length - a.cards.length)[0]
+        if (defenderArmy) cards = defenderArmy.cards.slice(0, 3).map((c) => ({ armyId: defenderArmy.armyId, cardId: c.id }))
+      }
+      return tryAction(state, seatId, { type: 'battleCommit', cards })
     }
     return false
   }

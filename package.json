@@ -14,14 +14,16 @@
     "sim:variants": "tsx scripts/simulate-variants.ts",
     "sim:invariants": "tsx scripts/playtest/invariants.ts",
     "sim:logic4p": "tsx scripts/playtest/logic-4p.ts",
-    "e2e": "tsx scripts/e2e-socket.ts",
+    "e2e": "tsx scripts/e2e-socket.ts && tsx scripts/playtest/hostkey.ts",
     "test:ui": "playwright test --config e2e/playwright.config.ts",
     "typecheck": "tsc --noEmit",
     "perf": "node scripts/perf.mjs",
     "artifacts": "tsx scripts/artifacts.ts",
     "demo": "tsx scripts/demo.ts",
     "sim:battles": "tsx scripts/playtest/battle-history.ts",
-    "art:study": "tsx scripts/crest-study.ts"
+    "art:study": "tsx scripts/crest-study.ts",
+    "e2e:security": "tsx scripts/playtest/hostkey.ts",
+    "sim:edges": "tsx scripts/playtest/edge-regressions.ts"
   },
   "dependencies": {
     "express": "^4.19.2",

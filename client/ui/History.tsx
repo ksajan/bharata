@@ -258,6 +258,7 @@ export function HistoryModal(props: {
     if (round !== 'all' && (entry.round ?? 0) !== round) return false
     if (filter === 'mine') {
       if (!mySeat || !contains(entry.text, mySeat.name)) return false
+      if (entry.kind === 'turn' || entry.kind === 'system') return false
     }
     if (filter === 'battle' && entry.kind !== 'battle') return false
     if (filter === 'event' && entry.kind !== 'event') return false

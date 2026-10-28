@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { acknowledgeHandoff } from './helpers'
 
 /** A refresh must not throw away a local table. */
 
@@ -48,6 +49,7 @@ test('a refreshed hot-seat game resumes where it left off, and abandoning clears
   await expect(banner).toBeVisible()
   await expect(banner).toContainText(/Bimbisara/)
   await banner.click()
+  await acknowledgeHandoff(page)
 
   const takeAgain = page.getByRole('button', { name: 'Take the bounty' })
   if (await takeAgain.isVisible().catch(() => false)) await takeAgain.click()
